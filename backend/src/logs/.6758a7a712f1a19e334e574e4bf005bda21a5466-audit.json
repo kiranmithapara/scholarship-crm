@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 30
+    },
+    "auditLog": "C:\\Users\\Kiran Mithapara\\Desktop\\scholarship-crm\\backend\\src\\logs\\.6758a7a712f1a19e334e574e4bf005bda21a5466-audit.json",
+    "files": [
+        {
+            "date": 1788245176984,
+            "name": "C:\\Users\\Kiran Mithapara\\Desktop\\scholarship-crm\\backend\\src\\logs\\error-2026-09-01.log",
+            "hash": "ab7574df9bbd6550753c18fd36876ab4a783a4384968ac4fba172ed643706d66"
+        }
+    ],
+    "hashType": "sha256"
+}

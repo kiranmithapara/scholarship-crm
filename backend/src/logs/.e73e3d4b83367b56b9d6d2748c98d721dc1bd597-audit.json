@@ -1,0 +1,20 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "C:\\Users\\Kiran Mithapara\\Desktop\\scholarship-crm\\backend\\src\\logs\\.e73e3d4b83367b56b9d6d2748c98d721dc1bd597-audit.json",
+    "files": [
+        {
+            "date": 1788245176979,
+            "name": "C:\\Users\\Kiran Mithapara\\Desktop\\scholarship-crm\\backend\\src\\logs\\combined-2026-09-01.log",
+            "hash": "b379ccaf8ba5c217f02fd5ee71dc9f57aabd5a12cabb9025f9099f41f340e27c"
+        },
+        {
+            "date": 1788289363799,
+            "name": "C:\\Users\\Kiran Mithapara\\Desktop\\scholarship-crm\\backend\\src\\logs\\combined-2026-09-02.log",
+            "hash": "0701acebaacea5c72051533a244118a021f8ef781480cb66f4331211de1aba1f"
+        }
+    ],
+    "hashType": "sha256"
+}

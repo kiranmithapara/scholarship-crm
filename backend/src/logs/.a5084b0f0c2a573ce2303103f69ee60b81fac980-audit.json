@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 30
+    },
+    "auditLog": "/home/claude/scholarship-crm/backend/src/logs/.a5084b0f0c2a573ce2303103f69ee60b81fac980-audit.json",
+    "files": [
+        {
+            "date": 1787732867360,
+            "name": "/home/claude/scholarship-crm/backend/src/logs/error-2026-08-26.log",
+            "hash": "a928704f0fb2ecfd33f041d79400523304d4747bcd6fc4bd85ea864d5a614ad5"
+        }
+    ],
+    "hashType": "sha256"
+}
