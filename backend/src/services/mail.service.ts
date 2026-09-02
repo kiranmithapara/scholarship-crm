@@ -64,7 +64,71 @@ async function sendEmail({ to, subject, html }: SendEmailParams): Promise<void> 
     }
   }
 
-  // 2. Resend API (HTTPS - Port 443)
+  // 2. SendGrid API (HTTPS - Port 443)
+  const sendgridKey = env.sendgridApiKey?.trim();
+  if (sendgridKey) {
+    try {
+      const senderEmail = env.smtp.fromEmail?.trim() || "kiranmithapara29@gmail.com";
+      const res = await fetch("https://api.sendgrid.com/v3/mail/send", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${sendgridKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          personalizations: [{ to: [{ email: to.trim() }] }],
+          from: { email: senderEmail, name: env.smtp.fromName?.trim() || "Scholarship CRM" },
+          subject,
+          content: [{ type: "text/html", value: html }],
+        }),
+      });
+      if (res.status >= 200 && res.status < 300) {
+        logger.info(`Email sent via SendGrid API to ${to}`);
+        return;
+      }
+      const errText = await res.text();
+      logger.warn(`SendGrid API error (${res.status}): ${errText}`);
+    } catch (err) {
+      logger.warn("SendGrid API request failed:", err);
+    }
+  }
+
+  // 3. Mailjet API (HTTPS - Port 443)
+  const mailjetKey = env.mailjetApiKey?.trim();
+  const mailjetSecret = env.mailjetSecretKey?.trim();
+  if (mailjetKey && mailjetSecret) {
+    try {
+      const senderEmail = env.smtp.fromEmail?.trim() || "kiranmithapara29@gmail.com";
+      const basicAuth = Buffer.from(`${mailjetKey}:${mailjetSecret}`).toString("base64");
+      const res = await fetch("https://api.mailjet.com/v3.1/send", {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${basicAuth}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          Messages: [
+            {
+              From: { Email: senderEmail, Name: env.smtp.fromName?.trim() || "Scholarship CRM" },
+              To: [{ Email: to.trim() }],
+              Subject: subject,
+              HTMLPart: html,
+            },
+          ],
+        }),
+      });
+      if (res.ok) {
+        logger.info(`Email sent via Mailjet API to ${to}`);
+        return;
+      }
+      const errText = await res.text();
+      logger.warn(`Mailjet API error (${res.status}): ${errText}`);
+    } catch (err) {
+      logger.warn("Mailjet API request failed:", err);
+    }
+  }
+
+  // 4. Resend API (HTTPS - Port 443)
   const resendKey = env.resendApiKey?.trim();
   if (resendKey) {
     try {
@@ -96,7 +160,7 @@ async function sendEmail({ to, subject, html }: SendEmailParams): Promise<void> 
     }
   }
 
-  // 3. Fallback to standard SMTP (local development)
+  // 5. Fallback to standard SMTP (local development)
   await mailTransporter.sendMail({
     from: `"${env.smtp.fromName}" <${env.smtp.fromEmail}>`,
     to,

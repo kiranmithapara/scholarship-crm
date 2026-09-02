@@ -54,6 +54,9 @@ export const env = {
 
   resendApiKey: process.env.RESEND_API_KEY ?? "",
   brevoApiKey: process.env.BREVO_API_KEY ?? "",
+  sendgridApiKey: process.env.SENDGRID_API_KEY ?? "",
+  mailjetApiKey: process.env.MAILJET_API_KEY ?? "",
+  mailjetSecretKey: process.env.MAILJET_SECRET_KEY ?? "",
 
   cloudinary: {
     cloudName: requireEnv("CLOUDINARY_CLOUD_NAME"),
