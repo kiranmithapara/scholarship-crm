@@ -23,7 +23,7 @@ const consoleFormat = winston.format.combine(
   })
 );
 
-const logsDir = path.join(process.cwd(), "src", "logs");
+const logsDir = path.join(process.cwd(), "logs");
 
 export const logger = winston.createLogger({
   level: env.isProduction ? "info" : "debug",

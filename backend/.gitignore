@@ -2,8 +2,11 @@ node_modules
 dist
 .env
 *.log
-logs/*.log
+logs/*
+!logs/.gitkeep
+.*-audit.json
 uploads/*
 !uploads/.gitkeep
 coverage
 .DS_Store
+

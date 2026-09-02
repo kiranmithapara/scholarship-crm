@@ -13,6 +13,11 @@ const bcrypt = require("bcrypt");
  */
 module.exports = {
   up: async (queryInterface) => {
+    const [existing] = await queryInterface.sequelize.query(
+      `SELECT id FROM users WHERE email = 'admin@scholarshipcrm.com' LIMIT 1;`
+    );
+    if (existing && existing.length > 0) return;
+
     const hashedPassword = await bcrypt.hash("Admin@12345", 12);
 
     await queryInterface.bulkInsert("users", [
