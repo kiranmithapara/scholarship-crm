@@ -36,53 +36,61 @@ interface SendEmailParams {
 async function sendEmail({ to, subject, html }: SendEmailParams): Promise<void> {
   // 1. Brevo API (HTTPS - Port 443, allows sending to ANY recipient email address without domain restriction)
   if (env.brevoApiKey) {
-    const senderEmail = env.smtp.fromEmail || "kiranmithapara29@gmail.com";
-    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
-      method: "POST",
-      headers: {
-        "api-key": env.brevoApiKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        sender: { name: env.smtp.fromName, email: senderEmail },
-        to: [{ email: to }],
-        subject,
-        htmlContent: html,
-      }),
-    });
-    if (!res.ok) {
+    try {
+      const senderEmail = env.smtp.fromEmail || "kiranmithapara29@gmail.com";
+      const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+          "api-key": env.brevoApiKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          sender: { name: env.smtp.fromName, email: senderEmail },
+          to: [{ email: to }],
+          subject,
+          htmlContent: html,
+        }),
+      });
+      if (res.ok) {
+        logger.info(`Email sent via Brevo API to ${to}`);
+        return;
+      }
       const errText = await res.text();
-      throw new Error(`Brevo API error (${res.status}): ${errText}`);
+      logger.warn(`Brevo API error (${res.status}): ${errText}`);
+    } catch (err) {
+      logger.warn("Brevo API request failed:", err);
     }
-    logger.info(`Email sent via Brevo API to ${to}`);
-    return;
   }
 
   // 2. Resend API (HTTPS - Port 443)
   if (env.resendApiKey) {
-    const fromAddress = env.smtp.fromEmail && !env.smtp.fromEmail.includes("gmail.com")
-      ? `${env.smtp.fromName} <${env.smtp.fromEmail}>`
-      : `${env.smtp.fromName} <onboarding@resend.dev>`;
+    try {
+      const fromAddress = env.smtp.fromEmail && !env.smtp.fromEmail.includes("gmail.com")
+        ? `${env.smtp.fromName} <${env.smtp.fromEmail}>`
+        : `${env.smtp.fromName} <onboarding@resend.dev>`;
 
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${env.resendApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: fromAddress,
-        to: [to],
-        subject,
-        html,
-      }),
-    });
-    if (!res.ok) {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${env.resendApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: fromAddress,
+          to: [to],
+          subject,
+          html,
+        }),
+      });
+      if (res.ok) {
+        logger.info(`Email sent via Resend API to ${to}`);
+        return;
+      }
       const errText = await res.text();
-      throw new Error(`Resend API error (${res.status}): ${errText}`);
+      logger.warn(`Resend API error (${res.status}): ${errText}`);
+    } catch (err) {
+      logger.warn("Resend API request failed:", err);
     }
-    logger.info(`Email sent via Resend API to ${to}`);
-    return;
   }
 
   // 3. Fallback to standard SMTP (local development)
