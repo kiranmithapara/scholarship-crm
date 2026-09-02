@@ -35,18 +35,20 @@ interface SendEmailParams {
 
 async function sendEmail({ to, subject, html }: SendEmailParams): Promise<void> {
   // 1. Brevo API (HTTPS - Port 443, allows sending to ANY recipient email address without domain restriction)
-  if (env.brevoApiKey) {
+  const brevoKey = env.brevoApiKey?.trim();
+  if (brevoKey) {
     try {
-      const senderEmail = env.smtp.fromEmail || "kiranmithapara29@gmail.com";
+      const senderEmail = env.smtp.fromEmail?.trim() || "kiranmithapara29@gmail.com";
       const res = await fetch("https://api.brevo.com/v3/smtp/email", {
         method: "POST",
         headers: {
-          "api-key": env.brevoApiKey,
+          "api-key": brevoKey,
           "Content-Type": "application/json",
+          Accept: "application/json",
         },
         body: JSON.stringify({
-          sender: { name: env.smtp.fromName, email: senderEmail },
-          to: [{ email: to }],
+          sender: { name: env.smtp.fromName?.trim() || "Scholarship CRM", email: senderEmail },
+          to: [{ email: to.trim() }],
           subject,
           htmlContent: html,
         }),
@@ -63,7 +65,8 @@ async function sendEmail({ to, subject, html }: SendEmailParams): Promise<void> 
   }
 
   // 2. Resend API (HTTPS - Port 443)
-  if (env.resendApiKey) {
+  const resendKey = env.resendApiKey?.trim();
+  if (resendKey) {
     try {
       const fromAddress = env.smtp.fromEmail && !env.smtp.fromEmail.includes("gmail.com")
         ? `${env.smtp.fromName} <${env.smtp.fromEmail}>`
@@ -72,12 +75,12 @@ async function sendEmail({ to, subject, html }: SendEmailParams): Promise<void> 
       const res = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${env.resendApiKey}`,
+          Authorization: `Bearer ${resendKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           from: fromAddress,
-          to: [to],
+          to: [to.trim()],
           subject,
           html,
         }),
