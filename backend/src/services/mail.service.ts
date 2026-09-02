@@ -34,7 +34,31 @@ interface SendEmailParams {
 }
 
 async function sendEmail({ to, subject, html }: SendEmailParams): Promise<void> {
-  // 1. Resend API (HTTPS - Port 443, never blocked by cloud firewalls)
+  // 1. Brevo API (HTTPS - Port 443, allows sending to ANY recipient email address without domain restriction)
+  if (env.brevoApiKey) {
+    const senderEmail = env.smtp.fromEmail || "kiranmithapara29@gmail.com";
+    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "api-key": env.brevoApiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        sender: { name: env.smtp.fromName, email: senderEmail },
+        to: [{ email: to }],
+        subject,
+        htmlContent: html,
+      }),
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Brevo API error (${res.status}): ${errText}`);
+    }
+    logger.info(`Email sent via Brevo API to ${to}`);
+    return;
+  }
+
+  // 2. Resend API (HTTPS - Port 443)
   if (env.resendApiKey) {
     const fromAddress = env.smtp.fromEmail && !env.smtp.fromEmail.includes("gmail.com")
       ? `${env.smtp.fromName} <${env.smtp.fromEmail}>`
@@ -58,29 +82,6 @@ async function sendEmail({ to, subject, html }: SendEmailParams): Promise<void> 
       throw new Error(`Resend API error (${res.status}): ${errText}`);
     }
     logger.info(`Email sent via Resend API to ${to}`);
-    return;
-  }
-
-  // 2. Brevo API (HTTPS - Port 443)
-  if (env.brevoApiKey) {
-    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
-      method: "POST",
-      headers: {
-        "api-key": env.brevoApiKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        sender: { name: env.smtp.fromName, email: env.smtp.fromEmail },
-        to: [{ email: to }],
-        subject,
-        htmlContent: html,
-      }),
-    });
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`Brevo API error (${res.status}): ${errText}`);
-    }
-    logger.info(`Email sent via Brevo API to ${to}`);
     return;
   }
 
