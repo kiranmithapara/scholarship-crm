@@ -27,6 +27,72 @@ function wrapTemplate(bodyHtml: string): string {
   `;
 }
 
+interface SendEmailParams {
+  to: string;
+  subject: string;
+  html: string;
+}
+
+async function sendEmail({ to, subject, html }: SendEmailParams): Promise<void> {
+  // 1. Resend API (HTTPS - Port 443, never blocked by cloud firewalls)
+  if (env.resendApiKey) {
+    const fromAddress = env.smtp.fromEmail && !env.smtp.fromEmail.includes("gmail.com")
+      ? `${env.smtp.fromName} <${env.smtp.fromEmail}>`
+      : `${env.smtp.fromName} <onboarding@resend.dev>`;
+
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${env.resendApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: fromAddress,
+        to: [to],
+        subject,
+        html,
+      }),
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Resend API error (${res.status}): ${errText}`);
+    }
+    logger.info(`Email sent via Resend API to ${to}`);
+    return;
+  }
+
+  // 2. Brevo API (HTTPS - Port 443)
+  if (env.brevoApiKey) {
+    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "api-key": env.brevoApiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        sender: { name: env.smtp.fromName, email: env.smtp.fromEmail },
+        to: [{ email: to }],
+        subject,
+        htmlContent: html,
+      }),
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Brevo API error (${res.status}): ${errText}`);
+    }
+    logger.info(`Email sent via Brevo API to ${to}`);
+    return;
+  }
+
+  // 3. Fallback to standard SMTP (local development)
+  await mailTransporter.sendMail({
+    from: `"${env.smtp.fromName}" <${env.smtp.fromEmail}>`,
+    to,
+    subject,
+    html,
+  });
+}
+
 export const mailService = {
   /** Sends the OTP for email verification (registration flow) or forgot-password flow. */
   sendOtpEmail: async (to: string, otp: string, purpose: "email_verification" | "forgot_password"): Promise<void> => {
@@ -40,15 +106,12 @@ export const mailService = {
     `;
 
     try {
-      await mailTransporter.sendMail({
-        from: `"${env.smtp.fromName}" <${env.smtp.fromEmail}>`,
+      await sendEmail({
         to,
         subject: purpose === "email_verification" ? "Verify your email - Scholarship CRM" : "Reset your password - Scholarship CRM",
         html: wrapTemplate(body),
       });
     } catch (error) {
-      // Email failure should not crash the request - it's logged, and the OTP still exists in DB
-      // so the user can request a resend. Never let a mail server outage break registration.
       logger.error(`Failed to send OTP email to ${to}:`, error);
     }
   },
@@ -62,8 +125,7 @@ export const mailService = {
       ${!isActive ? '<p style="font-size:13px;color:#6b7280;">If you believe this is a mistake, please contact your administrator.</p>' : ""}
     `;
     try {
-      await mailTransporter.sendMail({
-        from: `"${env.smtp.fromName}" <${env.smtp.fromEmail}>`,
+      await sendEmail({
         to,
         subject: `Account ${isActive ? "Activated" : "Blocked"} - Scholarship CRM`,
         html: wrapTemplate(body),

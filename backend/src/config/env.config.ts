@@ -52,6 +52,9 @@ export const env = {
     fromEmail: process.env.SMTP_FROM_EMAIL ?? "",
   },
 
+  resendApiKey: process.env.RESEND_API_KEY ?? "",
+  brevoApiKey: process.env.BREVO_API_KEY ?? "",
+
   cloudinary: {
     cloudName: requireEnv("CLOUDINARY_CLOUD_NAME"),
     apiKey: requireEnv("CLOUDINARY_API_KEY"),
