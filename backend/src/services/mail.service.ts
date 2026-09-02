@@ -34,7 +34,36 @@ interface SendEmailParams {
 }
 
 async function sendEmail({ to, subject, html }: SendEmailParams): Promise<void> {
-  // 1. Brevo API (HTTPS - Port 443, allows sending to ANY recipient email address without domain restriction)
+  // 1. SendGrid API (HTTPS - Port 443, sends to ANY recipient email address)
+  const sendgridKey = env.sendgridApiKey?.trim();
+  if (sendgridKey) {
+    try {
+      const senderEmail = env.smtp.fromEmail?.trim() || "kiranmithapara29@gmail.com";
+      const res = await fetch("https://api.sendgrid.com/v3/mail/send", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${sendgridKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          personalizations: [{ to: [{ email: to.trim() }] }],
+          from: { email: senderEmail, name: env.smtp.fromName?.trim() || "Scholarship CRM" },
+          subject,
+          content: [{ type: "text/html", value: html }],
+        }),
+      });
+      if (res.status >= 200 && res.status < 300) {
+        logger.info(`Email sent via SendGrid API to ${to}`);
+        return;
+      }
+      const errText = await res.text();
+      logger.warn(`SendGrid API error (${res.status}): ${errText}`);
+    } catch (err) {
+      logger.warn("SendGrid API request failed:", err);
+    }
+  }
+
+  // 2. Brevo API (HTTPS - Port 443)
   const brevoKey = env.brevoApiKey?.trim();
   if (brevoKey) {
     try {
@@ -61,35 +90,6 @@ async function sendEmail({ to, subject, html }: SendEmailParams): Promise<void> 
       logger.warn(`Brevo API error (${res.status}): ${errText}`);
     } catch (err) {
       logger.warn("Brevo API request failed:", err);
-    }
-  }
-
-  // 2. SendGrid API (HTTPS - Port 443)
-  const sendgridKey = env.sendgridApiKey?.trim();
-  if (sendgridKey) {
-    try {
-      const senderEmail = env.smtp.fromEmail?.trim() || "kiranmithapara29@gmail.com";
-      const res = await fetch("https://api.sendgrid.com/v3/mail/send", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${sendgridKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          personalizations: [{ to: [{ email: to.trim() }] }],
-          from: { email: senderEmail, name: env.smtp.fromName?.trim() || "Scholarship CRM" },
-          subject,
-          content: [{ type: "text/html", value: html }],
-        }),
-      });
-      if (res.status >= 200 && res.status < 300) {
-        logger.info(`Email sent via SendGrid API to ${to}`);
-        return;
-      }
-      const errText = await res.text();
-      logger.warn(`SendGrid API error (${res.status}): ${errText}`);
-    } catch (err) {
-      logger.warn("SendGrid API request failed:", err);
     }
   }
 
