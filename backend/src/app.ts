@@ -33,9 +33,26 @@ export function createApp(): Application {
     })
   );
 
+  const allowedOrigins = (env.CLIENT_URL || "")
+    .split(",")
+    .map((url) => url.trim())
+    .filter(Boolean);
+
   app.use(
     cors({
-      origin: env.CLIENT_URL,
+      origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        if (
+          allowedOrigins.length === 0 ||
+          allowedOrigins.includes(origin) ||
+          origin === "https://scholarship-crm.vercel.app" ||
+          origin.endsWith(".vercel.app") ||
+          origin.includes("localhost")
+        ) {
+          return callback(null, true);
+        }
+        return callback(new Error("CORS Policy: Origin not allowed"));
+      },
       credentials: true,
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization"],

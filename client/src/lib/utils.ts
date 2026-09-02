@@ -69,6 +69,7 @@ export function getFileUrl(url?: string | null): string | undefined {
   if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
     return url;
   }
-  const apiBase = (import.meta.env.VITE_API_URL || "http://localhost:5000/api/v1").replace(/\/api\/v1\/?$/, "");
+  const defaultApiUrl = import.meta.env.DEV ? "http://localhost:5000/api/v1" : "https://scholarship-crm.onrender.com/api/v1";
+  const apiBase = (import.meta.env.VITE_API_URL || defaultApiUrl).replace(/\/api\/v1\/?$/, "");
   return `${apiBase}${url.startsWith("/") ? "" : "/"}${url}`;
 }
