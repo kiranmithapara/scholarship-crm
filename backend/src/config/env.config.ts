@@ -58,6 +58,12 @@ export const env = {
   mailjetApiKey: process.env.MAILJET_API_KEY ?? "",
   mailjetSecretKey: process.env.MAILJET_SECRET_KEY ?? "",
 
+  gmail: {
+    clientId: process.env.GMAIL_CLIENT_ID ?? "",
+    clientSecret: process.env.GMAIL_CLIENT_SECRET ?? "",
+    refreshToken: process.env.GMAIL_REFRESH_TOKEN ?? "",
+  },
+
   cloudinary: {
     cloudName: requireEnv("CLOUDINARY_CLOUD_NAME"),
     apiKey: requireEnv("CLOUDINARY_API_KEY"),

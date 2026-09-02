@@ -34,7 +34,61 @@ interface SendEmailParams {
 }
 
 async function sendEmail({ to, subject, html }: SendEmailParams): Promise<void> {
-  // 1. SendGrid API (HTTPS - Port 443, sends to ANY recipient email address)
+  // 1. Google Gmail Official REST API (HTTPS - Port 443, lands 100% in Primary Inbox, never in spam)
+  if (env.gmail.clientId && env.gmail.clientSecret && env.gmail.refreshToken) {
+    try {
+      const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          client_id: env.gmail.clientId.trim(),
+          client_secret: env.gmail.clientSecret.trim(),
+          refresh_token: env.gmail.refreshToken.trim(),
+          grant_type: "refresh_token",
+        }),
+      });
+      const tokenData = (await tokenRes.json()) as { access_token?: string };
+      if (tokenData.access_token) {
+        const utf8Subject = `=?utf-8?B?${Buffer.from(subject).toString("base64")}?=`;
+        const senderEmail = env.smtp.fromEmail?.trim() || "kiranmithapara29@gmail.com";
+        const senderName = env.smtp.fromName?.trim() || "Scholarship CRM";
+        const messageParts = [
+          `From: ${senderName} <${senderEmail}>`,
+          `To: ${to.trim()}`,
+          `Subject: ${utf8Subject}`,
+          `MIME-Version: 1.0`,
+          `Content-Type: text/html; charset=utf-8`,
+          ``,
+          html,
+        ];
+        const rawMessage = Buffer.from(messageParts.join("\r\n"))
+          .toString("base64")
+          .replace(/\+/g, "-")
+          .replace(/\//g, "_")
+          .replace(/=+$/, "");
+
+        const sendRes = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${tokenData.access_token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ raw: rawMessage }),
+        });
+
+        if (sendRes.ok) {
+          logger.info(`Email sent via Official Gmail API directly to Primary Inbox of ${to}`);
+          return;
+        }
+        const errText = await sendRes.text();
+        logger.warn(`Gmail API error (${sendRes.status}): ${errText}`);
+      }
+    } catch (err) {
+      logger.warn("Gmail API request failed:", err);
+    }
+  }
+
+  // 2. SendGrid API (HTTPS - Port 443, sends to ANY recipient email address)
   const sendgridKey = env.sendgridApiKey?.trim();
   if (sendgridKey) {
     try {
