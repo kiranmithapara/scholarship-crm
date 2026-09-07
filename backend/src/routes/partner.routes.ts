@@ -10,6 +10,7 @@ import {
   updatePartnerStatusSchema,
   updatePartnerSchema,
   createPartnerSchema,
+  updatePartnerPricingSchema,
 } from "@/validators/partner.validator";
 
 const router = Router();
@@ -22,5 +23,8 @@ router.post("/", uploadSingleFile, validate(createPartnerSchema), partnerControl
 router.get("/:id", validate(partnerIdParamSchema), partnerController.getProfile);
 router.patch("/:id/status", validate(updatePartnerStatusSchema), partnerController.updateStatus);
 router.patch("/:id", validate(updatePartnerSchema), partnerController.update);
+// V2 NEW: Super Admin sets each partner's Prepaid/Postpaid buying cost
+router.patch("/:id/pricing", validate(updatePartnerPricingSchema), partnerController.updatePricing);
+router.delete("/:id", validate(partnerIdParamSchema), partnerController.delete);
 
 export default router;

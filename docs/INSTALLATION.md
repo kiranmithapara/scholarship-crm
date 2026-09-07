@@ -8,7 +8,7 @@ Full setup guide: local development, environment variables, and production deplo
 
 - Node.js 20+ and npm
 - PostgreSQL 14+ (local install, or a managed instance — Render, Railway, Supabase, etc.)
-- A Firebase project with **Storage** enabled
+- A Cloudinary account (free tier is enough) for document/receipt/avatar storage
 - An SMTP account for sending emails (Gmail App Password works fine for development)
 
 ---
@@ -35,10 +35,8 @@ npm install
 | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | Your PostgreSQL instance |
 | `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` | Generate two long random strings, e.g. `openssl rand -hex 32` |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` | Your email provider (Gmail: use an [App Password](https://myaccount.google.com/apppasswords), not your normal password) |
-| `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` | Firebase Console → Project Settings → Service Accounts → Generate new private key (downloads a JSON file with these three fields) |
-| `FIREBASE_STORAGE_BUCKET` | Firebase Console → Storage (usually `<project-id>.appspot.com`) |
-
-> **Note on `FIREBASE_PRIVATE_KEY`**: paste it as a single line with literal `\n` for newlines (the way it appears in the downloaded JSON). `env.config.ts` converts these to real newlines automatically.
+| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | [Cloudinary Dashboard](https://cloudinary.com/console) → shown on the account home page |
+| `CLOUDINARY_FOLDER` | Any name, e.g. `scholarship_crm` — the top-level Cloudinary folder all uploads are organized under |
 
 ### Create the database and run migrations
 
@@ -69,7 +67,7 @@ cp .env.example .env
 npm install
 ```
 
-Set `VITE_API_URL=http://localhost:5000/api/v1` in `client/.env` (and the `VITE_FIREBASE_*` values if you want client-side Firebase features later).
+Set `VITE_API_URL=http://localhost:5000/api/v1` in `client/.env`. The frontend never talks to Cloudinary directly — all uploads go through the backend's `multipart/form-data` endpoints.
 
 ```bash
 npm run dev
@@ -114,5 +112,5 @@ Any managed Postgres works (Render, Railway, Supabase, Neon). Set `DB_SSL=true` 
 - [ ] `GET /api/v1/health` returns `"database": "connected"`
 - [ ] Default Super Admin password has been changed
 - [ ] CORS `CLIENT_URL` in backend `.env` matches your deployed frontend URL exactly
-- [ ] Firebase Storage rules restrict access appropriately (the app uses signed URLs, but double-check bucket-level rules)
+- [ ] Cloudinary upload folder (`CLOUDINARY_FOLDER`) is set and reachable — test by uploading a document after deploy
 - [ ] SMTP is verified (check backend logs on boot for "SMTP transporter is ready")

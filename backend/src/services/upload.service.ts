@@ -70,7 +70,7 @@ export const uploadService = {
         };
       } catch (localError) {
         logger.error("Local file storage fallback failed:", localError);
-        // @ts-ignore
+        // @ts-expect-error - localError is typed unknown, narrowing via optional chaining below
         const details = localError?.message || "Unknown error";
         throw ApiError.internal(`File upload failed: ${details}`);
       }

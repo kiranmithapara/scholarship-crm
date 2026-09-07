@@ -91,9 +91,10 @@ All routes are **Super Admin only**.
 | Method | Path | Description |
 |---|---|---|
 | GET | `/` | Paginated list, `?page&pageSize&search&status` |
-| GET | `/:id` | Full profile: stats + student list |
+| GET | `/:id` | Full profile: stats + pricing + student list |
 | PATCH | `/:id/status` | Block/activate — body `{ isActive: boolean }` |
 | PATCH | `/:id` | Update name/mobile/photo |
+| PATCH | `/:id/pricing` | **V2 NEW** — body `{ prepaidCost, postpaidCost }`. Sets this partner's buying cost per service type; becomes the `buyingPrice` auto-filled when they add a student. |
 
 ---
 
@@ -103,15 +104,16 @@ Every route requires login; **ownership is enforced in the service layer** — a
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| GET | `/` | Any | List, scoped automatically by role. `?page&pageSize&search&plan&status` |
-| POST | `/` | Any | Create application (Referral Admin creates for self) |
-| GET | `/:id` | Owner or Super Admin | Full details incl. documents, payments, timeline, commission |
-| PATCH | `/:id` | Owner or Super Admin | Edit (Referral Admin only while `status=pending`) |
-| POST | `/:id/verify` | Super Admin | Marks verified, auto-creates commission record |
+| GET | `/` | Any | List, scoped automatically by role. `?page&pageSize&search&serviceType&status` |
+| POST | `/` | Any | Create application. Body includes `serviceType` (`prepaid`\|`postpaid`) and `sellingPrice`; `buyingPrice`/`partnerProfit` are computed server-side from the partner's pricing. |
+| GET | `/:id` | Owner or Super Admin | Full details incl. documents, payments, timeline, commission, financials |
+| PATCH | `/:id` | Owner or Super Admin | Edit (Referral Admin only while `status=pending`); `sellingPrice` changes auto-recompute `partnerProfit` |
+| POST | `/:id/verify` | Super Admin | Marks verified, creates commission record using `partnerProfit` |
 | POST | `/:id/request-correction` | Super Admin | Body `{ note }` — sends application back |
 | POST | `/:id/complete` | Super Admin | Marks completed (must be `verified` first) |
-| PATCH | `/:id/scholarship` | Owner or Super Admin | Update MYSY number/password/status |
-| POST | `/:id/documents` | Owner or Super Admin | `multipart/form-data`: `file` + `type` (`aadhaar`\|`hostel_receipt`\|`twelfth_marksheet`) |
+| POST | `/:id/timeline-stage` | Owner or Super Admin | **V2 NEW** — body `{ event, note? }`. Manually logs one of the 13 scholarship-progress stages (see CHANGELOG.md). Replaces the removed `/scholarship` (MYSY) endpoint. |
+| GET | `/:id/activity-logs` | Owner or Super Admin | **V2 NEW** — system audit trail scoped to this student, powers the Activity Logs tab |
+| POST | `/:id/documents` | Owner or Super Admin | `multipart/form-data`: `file` + `type` (`aadhaar`\|`hostel_receipt`\|`twelfth_marksheet`). **V2:** `hostel_receipt` returns `403 Forbidden` if uploaded by a `referral_admin` — Super Admin only. |
 | POST | `/:id/payments` | Any | Create a payment record |
 | PATCH | `/:id/payments/:paymentId/status` | Super Admin | Update payment status |
 
@@ -133,7 +135,7 @@ All routes are **Super Admin only**. `smtpPasswordEncrypted` is never returned i
 | Method | Path | Description |
 |---|---|---|
 | GET | `/` | Current site settings |
-| PATCH | `/` | Update website name, SMTP, Firebase bucket, allowed IPs, theme |
+| PATCH | `/` | Update website name, SMTP, Cloudinary folder, allowed IPs, theme |
 | POST | `/logo` | `multipart/form-data`: `file` — updates site logo |
 
 ---

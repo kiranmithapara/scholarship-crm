@@ -23,4 +23,13 @@ export const partnerService = {
   updateStatus: async (id: string, isActive: boolean): Promise<void> => {
     await api.patch(`/referral-partners/${id}/status`, { isActive });
   },
+
+  /** V2 NEW: Super Admin sets this partner's buying cost for each service type. */
+  updatePricing: async (id: string, prepaidCost: number, postpaidCost: number): Promise<void> => {
+    await api.patch(`/referral-partners/${id}/pricing`, { prepaidCost, postpaidCost });
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await api.delete(`/referral-partners/${id}`);
+  },
 };

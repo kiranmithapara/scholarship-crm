@@ -1,7 +1,9 @@
 import { Op } from "sequelize";
-import { Student, User, StudentDocument, Payment, StudentTimeline, Commission } from "@/models";
+import { Student, User, StudentDocument, Payment, StudentTimeline, Commission, ActivityLog } from "@/models";
 import { ApiError } from "@/utils/apiError";
 import type { DocumentType } from "@/models/Document";
+import type { ServiceType } from "@/models/Student";
+import type { TimelineEvent } from "@/models/StudentTimeline";
 
 interface CreateStudentInput {
   fullName: string;
@@ -11,31 +13,61 @@ interface CreateStudentInput {
   universityName: string;
   course: string;
   semester: string;
-  plan: "2500" | "5000";
-  mysyRegistrationNumber?: string;
-  mysyPassword?: string;
+  serviceType: ServiceType;
+  sellingPrice: number;
 }
 
 interface ListStudentsParams {
   page: number;
   pageSize: number;
   search?: string;
-  plan: "2500" | "5000" | "all";
+  serviceType: ServiceType | "all";
   status: "pending" | "verified" | "completed" | "correction_requested" | "all";
   /** When set, scopes results to this referral partner only (used for "My Students") */
   referralPartnerId?: string;
 }
 
-/** Commission amount is a flat percentage of the plan fee - kept simple and centralized here. */
-const COMMISSION_RATE = 0.2; // 20% of plan amount
-
 export const studentService = {
+  /**
+   * V2 UPGRADE: buyingPrice is no longer a flat formula - it's snapshotted from the
+   * Referral Partner's own prepaidCost/postpaidCost (set by Super Admin on their profile)
+   * at the moment the application is created. sellingPrice comes from the partner's form
+   * input. partnerProfit = sellingPrice - buyingPrice, computed once here (not a DB generated
+   * column) so historical profit never shifts if the partner's rate changes later.
+   */
   create: async (input: CreateStudentInput, referralPartnerId: string, createdBy: string): Promise<Student> => {
-    const student = await Student.create({ ...input, referralPartnerId });
+    const partner = await User.findByPk(referralPartnerId);
+    if (!partner) throw ApiError.notFound("Referral partner not found");
+
+    const buyingPrice = input.serviceType === "prepaid" ? partner.prepaidCost : partner.postpaidCost;
+    if (buyingPrice === null || buyingPrice === undefined) {
+      throw ApiError.badRequest(
+        `Super Admin has not set a ${input.serviceType} price for this partner yet. Please contact your administrator.`
+      );
+    }
+
+    const partnerProfit = input.sellingPrice - Number(buyingPrice);
+
+    const student = await Student.create({
+      fullName: input.fullName,
+      mobile: input.mobile,
+      gender: input.gender,
+      collegeName: input.collegeName,
+      universityName: input.universityName,
+      course: input.course,
+      semester: input.semester,
+      serviceType: input.serviceType,
+      // DECIMAL columns are typed as `string` on the model - .toFixed(2) also avoids
+      // floating-point rounding artifacts on money values (e.g. 0.1 + 0.2 !== 0.3).
+      sellingPrice: input.sellingPrice.toFixed(2),
+      buyingPrice: Number(buyingPrice).toFixed(2),
+      partnerProfit: partnerProfit.toFixed(2),
+      referralPartnerId,
+    });
 
     await StudentTimeline.create({
       studentId: student.id,
-      event: "application_submitted",
+      event: "application_filled",
       note: "Application submitted by referral partner",
       createdBy,
     });
@@ -43,10 +75,10 @@ export const studentService = {
     return student;
   },
 
-  list: async ({ page, pageSize, search, plan, status, referralPartnerId }: ListStudentsParams) => {
+  list: async ({ page, pageSize, search, serviceType, status, referralPartnerId }: ListStudentsParams) => {
     const where: Record<string | symbol, unknown> = {};
     if (referralPartnerId) where.referralPartnerId = referralPartnerId;
-    if (plan !== "all") where.plan = plan;
+    if (serviceType !== "all") where.serviceType = serviceType;
     if (status !== "all") where.status = status;
     if (search) {
       where[Op.or as unknown as string] = [
@@ -90,7 +122,11 @@ export const studentService = {
     return student;
   },
 
-  update: async (id: string, updates: Partial<CreateStudentInput>, requester: { id: string; role: string }): Promise<Student> => {
+  update: async (
+    id: string,
+    updates: Partial<Omit<CreateStudentInput, "serviceType">>,
+    requester: { id: string; role: string }
+  ): Promise<Student> => {
     const student = await Student.findByPk(id);
     if (!student) throw ApiError.notFound("Student not found");
     studentService.assertAccess(student, requester);
@@ -100,11 +136,17 @@ export const studentService = {
       throw ApiError.forbidden("Only pending applications can be edited");
     }
 
-    await student.update(updates);
+    // If sellingPrice changes, recompute partnerProfit against the already-snapshotted buyingPrice
+    const patch: Record<string, unknown> = { ...updates };
+    if (updates.sellingPrice !== undefined && student.buyingPrice !== null) {
+      patch.partnerProfit = updates.sellingPrice - Number(student.buyingPrice);
+    }
+
+    await student.update(patch);
     return student;
   },
 
-  /** Super Admin verifies an application - creates the commission record at this point. */
+  /** Super Admin verifies an application - creates the commission record using the already-computed partner profit. */
   verify: async (id: string, verifiedBy: string): Promise<Student> => {
     const student = await Student.findByPk(id);
     if (!student) throw ApiError.notFound("Student not found");
@@ -112,10 +154,10 @@ export const studentService = {
       throw ApiError.badRequest("This application has already been verified");
     }
 
-    const commissionAmount = Number(student.plan) * COMMISSION_RATE;
+    const commissionAmount = Number(student.partnerProfit ?? 0);
 
     await student.update({ status: "verified", correctionNote: null });
-    await StudentTimeline.create({ studentId: id, event: "verified", createdBy: verifiedBy });
+    await StudentTimeline.create({ studentId: id, event: "help_center_verification_completed", createdBy: verifiedBy });
     await Commission.findOrCreate({
       where: { studentId: id },
       defaults: { referralPartnerId: student.referralPartnerId, studentId: id, amount: commissionAmount, status: "pending" },
@@ -142,42 +184,76 @@ export const studentService = {
     if (student.status !== "verified") throw ApiError.badRequest("Only verified applications can be marked completed");
 
     await student.update({ status: "completed" });
-    await StudentTimeline.create({ studentId: id, event: "completed", createdBy: completedBy });
+    await StudentTimeline.create({ studentId: id, event: "case_completed", createdBy: completedBy });
 
     return student;
   },
 
-  updateScholarship: async (
+  /**
+   * V2 NEW: Manually add a scholarship-progress timeline stage - the heart of the new
+   * 13-stage tracking system. Anyone with access to the student (owner partner or Super Admin)
+   * can log a stage; there is no automation or derived state.
+   */
+  addTimelineStage: async (
     id: string,
-    updates: { mysyRegistrationNumber?: string; mysyPassword?: string; scholarshipStatus?: "pending" | "approved" | "rejected" },
+    event: TimelineEvent,
+    note: string | undefined,
     requester: { id: string; role: string }
-  ): Promise<Student> => {
+  ): Promise<StudentTimeline> => {
     const student = await Student.findByPk(id);
     if (!student) throw ApiError.notFound("Student not found");
     studentService.assertAccess(student, requester);
 
-    await student.update(updates);
-    return student;
+    return StudentTimeline.create({ studentId: id, event, note: note ?? null, createdBy: requester.id });
+  },
+
+  /**
+   * V2 NEW: Fetches activity-log entries relevant to a single student, for the new
+   * "Activity Logs" tab in Student Details (distinct from the manual scholarship-progress
+   * Timeline tab - this is a system audit trail of actions taken).
+   */
+  getActivityLogs: async (id: string, requester: { id: string; role: string }) => {
+    const student = await Student.findByPk(id);
+    if (!student) throw ApiError.notFound("Student not found");
+    studentService.assertAccess(student, requester);
+
+    return ActivityLog.findAll({
+      where: { details: { studentId: id } },
+      include: [{ model: User, as: "user", attributes: ["id", "fullName"] }],
+      order: [["createdAt", "DESC"]],
+    });
   },
 
   addDocument: async (
     studentId: string,
     type: DocumentType,
     file: { url: string; fileName: string },
-    uploadedBy: string
+    uploader: { id: string; role: string }
   ): Promise<StudentDocument> => {
     const student = await Student.findByPk(studentId);
     if (!student) throw ApiError.notFound("Student not found");
+    studentService.assertAccess(student, uploader);
+
+    // V2 UPGRADE: Hostel Receipt is NEVER uploaded by a Referral Partner - only Super Admin,
+    // after they've physically created the receipt offline (per the new business workflow).
+    if (type === "hostel_receipt" && uploader.role !== "super_admin") {
+      throw ApiError.forbidden("Only Super Admin can upload the Hostel Receipt");
+    }
 
     // Replace any existing document of the same type (unique constraint on student_id+type)
     const existing = await StudentDocument.findOne({ where: { studentId, type } });
     if (existing) {
-      await existing.update({ fileUrl: file.url, fileName: file.fileName, uploadedBy });
+      await existing.update({ fileUrl: file.url, fileName: file.fileName, uploadedBy: uploader.id });
       return existing;
     }
 
-    const document = await StudentDocument.create({ studentId, type, fileUrl: file.url, fileName: file.fileName, uploadedBy });
-    await StudentTimeline.create({ studentId, event: "receipt_uploaded", note: `${type.replace(/_/g, " ")} uploaded`, createdBy: uploadedBy });
+    const document = await StudentDocument.create({ studentId, type, fileUrl: file.url, fileName: file.fileName, uploadedBy: uploader.id });
+    await StudentTimeline.create({
+      studentId,
+      event: "receipt_uploaded",
+      note: `${type.replace(/_/g, " ")} uploaded`,
+      createdBy: uploader.id,
+    });
 
     return document;
   },

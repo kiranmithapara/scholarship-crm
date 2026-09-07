@@ -9,11 +9,11 @@ import {
   listStudentsSchema,
   studentIdParamSchema,
   updateStudentSchema,
-  updateScholarshipSchema,
   requestCorrectionSchema,
   documentTypeSchema,
   addPaymentSchema,
   updatePaymentStatusSchema,
+  addTimelineStageSchema,
 } from "@/validators/student.validator";
 
 const router = Router();
@@ -32,7 +32,12 @@ router.post("/:id/complete", roleMiddleware("super_admin"), validate(studentIdPa
 router.patch("/:id/payments/:paymentId/status", roleMiddleware("super_admin"), validate(updatePaymentStatusSchema), studentController.updatePaymentStatus);
 
 // ---------- Shared (ownership-checked inside the service) ----------
-router.patch("/:id/scholarship", validate(updateScholarshipSchema), studentController.updateScholarship);
+// V2 UPGRADE: /scholarship endpoint removed (MYSY fields gone) - replaced by /timeline-stage,
+// the new manual 13-stage scholarship-progress tracker.
+router.post("/:id/timeline-stage", validate(addTimelineStageSchema), studentController.addTimelineStage);
+router.get("/:id/activity-logs", validate(studentIdParamSchema), studentController.getActivityLogs);
+// V2 UPGRADE: hostel_receipt upload permission (Super Admin only) is enforced inside
+// studentService.addDocument, not here, since it depends on the document `type` in the body.
 router.post("/:id/documents", uploadSingleFile, validate(documentTypeSchema), studentController.uploadDocument);
 router.post("/:id/payments", validate(addPaymentSchema), studentController.addPayment);
 

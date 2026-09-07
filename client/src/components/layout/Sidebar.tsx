@@ -8,6 +8,7 @@ import {
   ScrollText,
   History,
   UserCircle,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -36,18 +37,32 @@ const referralAdminNav: NavItem[] = [
   { label: "Profile", href: ROUTES.PROFILE, icon: UserCircle },
 ];
 
-/** Sidebar - primary navigation, nav items differ entirely by role (Super Admin vs Referral Admin). */
-export function Sidebar() {
+interface SidebarContentProps {
+  onNavClick?: () => void;
+}
+
+export function SidebarContent({ onNavClick }: SidebarContentProps) {
   const { user } = useAuth();
   const navItems = user?.role === ROLES.SUPER_ADMIN ? superAdminNav : referralAdminNav;
 
   return (
-    <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-card lg:flex">
-      <div className="flex h-16 items-center gap-2 border-b border-border px-6">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-primary text-white">
-          <GraduationCap className="h-4.5 w-4.5" />
+    <div className="flex h-full flex-1 flex-col bg-card">
+      <div className="flex h-16 items-center justify-between border-b border-border px-6">
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-primary text-white">
+            <GraduationCap className="h-4.5 w-4.5" />
+          </div>
+          <span className="text-base font-semibold text-foreground">Scholarship CRM</span>
         </div>
-        <span className="text-base font-semibold text-foreground">Scholarship CRM</span>
+        {onNavClick && (
+          <button
+            onClick={onNavClick}
+            className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground lg:hidden"
+            aria-label="Close navigation"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        )}
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto p-4">
@@ -55,11 +70,12 @@ export function Sidebar() {
           <NavLink
             key={item.href}
             to={item.href}
+            onClick={onNavClick}
             className={({ isActive }) =>
               cn(
                 "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
                 isActive
-                  ? "bg-primary-50 text-primary-700"
+                  ? "bg-primary-50 text-primary-700 font-semibold"
                   : "text-muted-foreground hover:bg-accent hover:text-foreground"
               )
             }
@@ -69,6 +85,29 @@ export function Sidebar() {
           </NavLink>
         ))}
       </nav>
+    </div>
+  );
+}
+
+/** Desktop Sidebar - fixed on left for large screens (`lg:flex`). */
+export function Sidebar() {
+  return (
+    <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-card lg:flex">
+      <SidebarContent />
     </aside>
+  );
+}
+
+/** Mobile Sidebar - slide-over drawer for mobile and tablet screens (`lg:hidden`). */
+export function MobileSidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 lg:hidden">
+      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm animate-fade-in" onClick={onClose} />
+      <div className="fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] bg-card shadow-soft-lg animate-fade-in">
+        <SidebarContent onNavClick={onClose} />
+      </div>
+    </div>
   );
 }

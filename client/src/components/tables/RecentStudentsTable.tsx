@@ -53,7 +53,7 @@ export function RecentStudentsTable({ students, isLoading }: RecentStudentsTable
                       </Link>
                     </td>
                     <td className="py-3 text-muted-foreground">{student.collegeName}</td>
-                    <td className="py-3 text-muted-foreground">₹{student.plan}</td>
+                    <td className="py-3 text-muted-foreground capitalize">{student.serviceType}</td>
                     <td className="py-3">
                       <StatusBadge status={student.status} />
                     </td>

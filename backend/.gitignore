@@ -5,8 +5,10 @@ dist
 logs/*
 !logs/.gitkeep
 .*-audit.json
+src/logs/*
+!src/logs/.gitkeep
+coverage
 uploads/*
 !uploads/.gitkeep
-coverage
 .DS_Store
 

@@ -13,9 +13,9 @@ import { QuickActions } from "@/components/common/QuickActions";
 import { useStudents } from "@/hooks/useStudents";
 import { ROUTES, buildPath } from "@/constants/routes.constant";
 
-/** StudentListPage - Page 6. All students (Super Admin) with search, plan/status filters, summary cards. */
+/** StudentListPage - Page 6. All students (Super Admin) with search, service-type/status filters, summary cards. */
 export default function StudentListPage() {
-  const { data, isLoading, error, setPage, search, setSearch, plan, setPlan, status, setStatus, refetch } = useStudents();
+  const { data, isLoading, error, setPage, search, setSearch, serviceType, setServiceType, status, setStatus, refetch } = useStudents();
 
   if (error) {
     return (
@@ -25,28 +25,28 @@ export default function StudentListPage() {
     );
   }
 
-  const plan2500 = data?.items.filter((s) => s.plan === "2500").length ?? 0;
-  const plan5000 = data?.items.filter((s) => s.plan === "5000").length ?? 0;
+  const prepaidCount = data?.items.filter((s) => s.serviceType === "prepaid").length ?? 0;
+  const postpaidCount = data?.items.filter((s) => s.serviceType === "postpaid").length ?? 0;
   const pending = data?.items.filter((s) => s.status === "pending" || s.status === "correction_requested").length ?? 0;
   const completed = data?.items.filter((s) => s.status === "completed").length ?? 0;
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-4 sm:p-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Students</h1>
-        <p className="mt-1 text-sm text-muted-foreground">All scholarship applications across every referral partner.</p>
+        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">Students</h1>
+        <p className="mt-1 text-xs sm:text-sm text-muted-foreground">All scholarship applications across every referral partner.</p>
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 md:grid-cols-4">
         <Card>
           <CardContent className="flex items-center gap-3 p-5">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-50 text-primary">
               <Wallet className="h-4.5 w-4.5" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">₹2500 Plan</p>
-              <p className="text-lg font-semibold text-foreground">{plan2500}</p>
+              <p className="text-xs text-muted-foreground">Prepaid Service</p>
+              <p className="text-lg font-semibold text-foreground">{prepaidCount}</p>
             </div>
           </CardContent>
         </Card>
@@ -56,8 +56,8 @@ export default function StudentListPage() {
               <Wallet className="h-4.5 w-4.5" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">₹5000 Plan</p>
-              <p className="text-lg font-semibold text-foreground">{plan5000}</p>
+              <p className="text-xs text-muted-foreground">Postpaid Service</p>
+              <p className="text-lg font-semibold text-foreground">{postpaidCount}</p>
             </div>
           </CardContent>
         </Card>
@@ -91,14 +91,14 @@ export default function StudentListPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input placeholder="Search by name, mobile or college..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
-        <Select value={plan} onValueChange={(v) => setPlan(v as typeof plan)}>
-          <SelectTrigger className="w-full sm:w-32">
-            <SelectValue placeholder="Plan" />
+        <Select value={serviceType} onValueChange={(v) => setServiceType(v as typeof serviceType)}>
+          <SelectTrigger className="w-full sm:w-40">
+            <SelectValue placeholder="Service Type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Plans</SelectItem>
-            <SelectItem value="2500">₹2500</SelectItem>
-            <SelectItem value="5000">₹5000</SelectItem>
+            <SelectItem value="all">All Services</SelectItem>
+            <SelectItem value="prepaid">Prepaid</SelectItem>
+            <SelectItem value="postpaid">Postpaid</SelectItem>
           </SelectContent>
         </Select>
         <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
@@ -136,7 +136,7 @@ export default function StudentListPage() {
                     <tr className="border-b border-border bg-muted/40 text-left text-xs text-muted-foreground">
                       <th className="px-6 py-3 font-medium">Student</th>
                       <th className="px-4 py-3 font-medium">College</th>
-                      <th className="px-4 py-3 font-medium">Plan</th>
+                      <th className="px-4 py-3 font-medium">Service Type</th>
                       <th className="px-4 py-3 font-medium">Referral Partner</th>
                       <th className="px-4 py-3 font-medium">Status</th>
                       <th className="px-6 py-3 text-right font-medium">Actions</th>
@@ -152,7 +152,7 @@ export default function StudentListPage() {
                           <p className="text-xs text-muted-foreground">{student.mobile}</p>
                         </td>
                         <td className="px-4 py-3.5 text-muted-foreground">{student.collegeName}</td>
-                        <td className="px-4 py-3.5 text-muted-foreground">₹{student.plan}</td>
+                        <td className="px-4 py-3.5 text-muted-foreground capitalize">{student.serviceType}</td>
                         <td className="px-4 py-3.5 text-muted-foreground">{student.referralPartner?.fullName ?? "-"}</td>
                         <td className="px-4 py-3.5">
                           <StatusBadge status={student.status} />

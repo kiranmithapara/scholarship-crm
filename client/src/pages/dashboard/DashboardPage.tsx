@@ -29,13 +29,13 @@ export default function DashboardPage() {
   const isSuperAdmin = user?.role === ROLES.SUPER_ADMIN;
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-4 sm:p-6">
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">
           Welcome back, {user?.fullName.split(" ")[0]}
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
           {isSuperAdmin
             ? "Here's what's happening across your scholarship program."
             : "Here's an overview of your referred students and earned commissions."}
@@ -43,13 +43,13 @@ export default function DashboardPage() {
       </motion.div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {isSuperAdmin && (
           <StatCard label="Referral Partners" value={cards?.totalReferralPartners ?? 0} icon={Users} isLoading={isLoading} tone="primary" />
         )}
         <StatCard label={isSuperAdmin ? "Total Students" : "My Students"} value={cards?.totalStudents ?? 0} icon={GraduationCap} isLoading={isLoading} tone="primary" />
-        <StatCard label="₹2500 Plan" value={cards?.plan2500Count ?? 0} icon={Wallet} isLoading={isLoading} tone="primary" />
-        <StatCard label="₹5000 Plan" value={cards?.plan5000Count ?? 0} icon={Wallet2} isLoading={isLoading} tone="primary" />
+        <StatCard label="Prepaid Service" value={cards?.prepaidCount ?? 0} icon={Wallet} isLoading={isLoading} tone="primary" />
+        <StatCard label="Postpaid Service" value={cards?.postpaidCount ?? 0} icon={Wallet2} isLoading={isLoading} tone="primary" />
         <StatCard label="Pending Applications" value={cards?.pendingCount ?? 0} icon={Clock} isLoading={isLoading} tone="warning" />
         <StatCard label="Completed" value={cards?.completedCount ?? 0} icon={CheckCircle2} isLoading={isLoading} tone="success" />
         <StatCard label="Commission (Pending)" value={cards?.commission.pending ?? 0} icon={Wallet} isLoading={isLoading} tone="warning" prefix="₹" />

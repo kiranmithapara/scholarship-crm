@@ -1,9 +1,10 @@
-# Scholarship CRM
+# Scholarship CRM — Hostel Receipt Business Edition (V2)
 
-A production-ready Scholarship CRM — React 19 + TypeScript frontend, Express + PostgreSQL backend, Firebase Storage, JWT + Email OTP authentication, role-based access for Super Admin and Referral Admin.
+A production-ready CRM for a Hostel Receipt referral business — React 19 + TypeScript frontend, Express + PostgreSQL backend, Cloudinary storage, JWT + Email OTP authentication, role-based access for Super Admin and Referral Admin.
 
 **Full documentation lives in [`docs/`](./docs/README.md):**
 
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md) — **V2 upgrade** — what changed from the original scholarship CRM and why
 - [`docs/README.md`](./docs/README.md) — overview, tech stack, quick start
 - [`docs/INSTALLATION.md`](./docs/INSTALLATION.md) — full local setup + deployment guide
 - [`docs/DATABASE.md`](./docs/DATABASE.md) — schema and ER diagram

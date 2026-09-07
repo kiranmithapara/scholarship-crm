@@ -45,10 +45,12 @@ Both **Super Admin** and **Referral Admin** live in this single table, different
 | username | STRING(50) | unique |
 | password | STRING | bcrypt hash only |
 | role | ENUM | `super_admin`, `referral_admin` |
-| photo_url | STRING | Firebase Storage URL only — never a file |
+| photo_url | STRING | Cloudinary URL only — never a file |
 | is_active | BOOLEAN | Super Admin can block/activate |
 | is_email_verified | BOOLEAN | set true after OTP verification |
 | last_login_at | DATE | |
+| prepaid_cost | DECIMAL(10,2) | **V2** — this partner's buying cost for Prepaid Service, set only by Super Admin |
+| postpaid_cost | DECIMAL(10,2) | **V2** — this partner's buying cost for Postpaid Service, set only by Super Admin |
 | deleted_at | DATE | soft-delete |
 
 ### `otps`
@@ -63,50 +65,53 @@ Short-lived codes for email verification and forgot-password.
 | expires_at | DATE | `OTP_EXPIRY_MINUTES` from now |
 
 ### `students`
-Core entity. `referral_partner_id` → `users.id` is how **"My Students"** (Referral Admin) vs **"All Students"** (Super Admin) scoping works everywhere in the API.
+Core entity. `referral_partner_id` → `users.id` is how **"My Students"** (Referral Admin) vs **"All Students"** (Super Admin) scoping works everywhere in the API. **Never hard-deleted** — every application is kept permanently as a future marketing/re-engagement database.
 
 | Column | Type | Notes |
 |---|---|---|
-| plan | ENUM | `2500`, `5000` — drives which documents are required |
-| status | ENUM | `pending`, `verified`, `completed`, `correction_requested` — drives the Timeline tab |
-| mysy_registration_number / mysy_password | STRING | MYSY govt. portal credentials |
-| scholarship_status | ENUM | `pending`, `approved`, `rejected` — MYSY-side status, independent of `status` |
+| service_type | ENUM | `prepaid`, `postpaid` — **V2**, renamed from `plan` (`2500`/`5000`); drives which documents are required |
+| status | ENUM | `pending`, `verified`, `completed`, `correction_requested` — high-level processing bucket |
+| buying_price | DECIMAL(10,2) | **V2** — snapshotted from the partner's `prepaid_cost`/`postpaid_cost` at the moment the application is created; never changes retroactively if the partner's rate changes later |
+| selling_price | DECIMAL(10,2) | **V2** — entered by the Referral Partner when submitting the application |
+| partner_profit | DECIMAL(10,2) | **V2** — auto-computed as `selling_price - buying_price`, never entered manually |
 | correction_note | TEXT | set by Super Admin when requesting a correction |
 | referral_partner_id | UUID (FK → users) | `onDelete: RESTRICT` — a partner with students can't be hard-deleted |
 
+> **V2 removed:** `plan`, `mysy_registration_number`, `mysy_password`, `scholarship_status` — MYSY tracking is replaced entirely by the 13-stage `student_timelines` workflow below.
+
 ### `documents`
-**Only Firebase Storage URLs are stored — never binary/base64 file data** (per project rule).
+**Only Cloudinary URLs are stored — never binary/base64 file data** (per project rule).
 
 | Column | Type | Notes |
 |---|---|---|
 | student_id | UUID (FK → students) | `onDelete: CASCADE` |
-| type | ENUM | `aadhaar`, `hostel_receipt` (plan 2500), `twelfth_marksheet` (plan 5000) |
-| file_url | STRING | Firebase download URL |
+| type | ENUM | `aadhaar` (all), `twelfth_marksheet` (Postpaid only), `hostel_receipt` (**Super Admin upload only** — see Business Workflow in CHANGELOG.md) |
+| file_url | STRING | Cloudinary secure URL |
 | uploaded_by | UUID (FK → users) | |
 
-Unique constraint on `(student_id, type)` — a student can't have two active documents of the same type.
+Unique constraint on `(student_id, type)` — a student can't have two active documents of the same type. **V2:** `hostel_receipt` uploads are rejected with `403 Forbidden` at the service layer (`student.service.ts`) if attempted by a `referral_admin`.
 
 ### `payments`
-The ₹2500/₹5000 receipt payment per student.
+The service payment per student — amount varies per application (see `students.selling_price`), not a fixed plan fee.
 
 | Column | Type | Notes |
 |---|---|---|
 | amount | DECIMAL(10,2) | |
 | status | ENUM | `pending`, `completed`, `failed` |
 | transaction_id | STRING | |
-| receipt_url | STRING | Firebase URL of uploaded receipt |
+| receipt_url | STRING | Cloudinary URL of uploaded payment receipt |
 
 ### `student_timelines`
-Powers the **Timeline** tab.
+Powers the **Scholarship Progress** and **Timeline** tabs. **V2:** expanded from 5 generic events to the full 13-stage manual workflow (plus 2 operational carryovers), every stage entered manually with no automation.
 
 | Column | Type | Notes |
 |---|---|---|
-| event | ENUM | `application_submitted`, `verified`, `receipt_uploaded`, `correction_requested`, `completed` |
-| note | TEXT | optional context |
-| created_by | UUID (FK → users) | who triggered the event |
+| event | ENUM | `application_filled`, `application_locked_by_student`, `documents_submitted`, `help_center_verification_completed`, `commissioner_verification`, `query_raised`, `query_resolved`, `scholarship_approved`, `scholarship_amount_credited`, `payment_pending`, `payment_received`, `payment_verified`, `case_completed`, `correction_requested`, `receipt_uploaded` |
+| note | TEXT | optional internal context |
+| created_by | UUID (FK → users) | who logged the stage |
 
 ### `commissions`
-What a Referral Admin earns per completed application. One row per student (unique constraint on `student_id`) to avoid double-counting.
+What a Referral Admin earns per completed application. One row per student (unique constraint on `student_id`) to avoid double-counting. **V2:** `amount` is set from `students.partner_profit` (selling − buying) at verification time, not a flat formula.
 
 | Column | Type | Notes |
 |---|---|---|
@@ -143,7 +148,7 @@ Every login attempt — successful or failed — for the **Login Logs** page (Su
 | Column | Type | Notes |
 |---|---|---|
 | website_name | STRING | |
-| logo_url | STRING | Firebase URL |
+| logo_url | STRING | Cloudinary URL |
 | smtp_* | STRING/INTEGER | SMTP override config |
 | smtp_password_encrypted | STRING | AES-encrypted, never plain text |
 | allowed_ips | ARRAY(STRING) | empty = allow all |

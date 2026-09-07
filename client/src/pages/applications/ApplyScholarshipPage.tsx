@@ -14,6 +14,9 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { studentService } from "@/services/student.service";
 import { ROUTES, buildPath } from "@/constants/routes.constant";
 
+// V2 UPGRADE: "plan" -> "serviceType" (Prepaid/Postpaid Service). MYSY fields removed entirely.
+// "sellingPrice" added - the Referral Partner enters what they're charging the student;
+// the buying (cost) price is looked up server-side from the partner's own rate, never entered here.
 const applyScholarshipSchema = z.object({
   fullName: z.string().trim().min(2, "Full name is too short"),
   mobile: z.string().trim().regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit mobile number"),
@@ -22,15 +25,15 @@ const applyScholarshipSchema = z.object({
   universityName: z.string().trim().min(2, "University name is required"),
   course: z.string().trim().min(2, "Course is required"),
   semester: z.string().trim().min(1, "Semester is required"),
-  plan: z.enum(["2500", "5000"], { message: "Please select a plan" }),
-  mysyRegistrationNumber: z.string().trim().optional(),
-  mysyPassword: z.string().trim().optional(),
+  serviceType: z.enum(["prepaid", "postpaid"], { message: "Please select a service type" }),
+  sellingPrice: z.coerce.number().positive("Selling price must be greater than 0"),
 });
 type ApplyScholarshipFormValues = z.infer<typeof applyScholarshipSchema>;
 
-/** ApplyScholarshipPage - Page 8. Referral Admin submits a new scholarship application.
- * Document upload (Aadhaar + plan-specific doc) happens on the Student Details page right after,
- * since Firebase upload needs a student id to attach documents to. */
+/** ApplyScholarshipPage - Referral Admin submits a new student application.
+ * V2 UPGRADE: Document upload here is Aadhaar-only for Prepaid, Aadhaar + 12th Marksheet for
+ * Postpaid. Hostel Receipt is NEVER uploaded here - per the new business workflow, Super Admin
+ * uploads it separately, later, only after creating it offline. */
 export default function ApplyScholarshipPage() {
   const navigate = useNavigate();
 
@@ -49,12 +52,10 @@ export default function ApplyScholarshipPage() {
       universityName: "",
       course: "",
       semester: "",
-      mysyRegistrationNumber: "",
-      mysyPassword: "",
     },
   });
 
-  const selectedPlan = watch("plan");
+  const selectedServiceType = watch("serviceType");
 
   const onSubmit = async (values: ApplyScholarshipFormValues) => {
     try {
@@ -68,7 +69,7 @@ export default function ApplyScholarshipPage() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 p-6">
+    <div className="mx-auto max-w-2xl space-y-6 p-4 sm:p-6">
       <Link to={ROUTES.MY_STUDENTS} className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-3.5 w-3.5" /> Back to My Students
       </Link>
@@ -78,7 +79,7 @@ export default function ApplyScholarshipPage() {
           <FileText className="h-5 w-5" />
         </div>
         <div>
-          <h1 className="text-xl font-semibold text-foreground">Apply for Scholarship</h1>
+          <h1 className="text-xl font-semibold text-foreground">New Student Application</h1>
           <p className="text-sm text-muted-foreground">Fill in the student's details to submit a new application.</p>
         </div>
       </div>
@@ -121,45 +122,44 @@ export default function ApplyScholarshipPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label>Plan</Label>
+              <Label>Service Type</Label>
               <Controller
                 control={control}
-                name="plan"
+                name="serviceType"
                 render={({ field }) => (
                   <Select value={field.value} onValueChange={field.onChange}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a plan" />
+                      <SelectValue placeholder="Select a service type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="2500">₹2500 - Aadhaar + Hostel Receipt</SelectItem>
-                      <SelectItem value="5000">₹5000 - Aadhaar + 12th Marksheet</SelectItem>
+                      <SelectItem value="prepaid">Prepaid Service - student pays before receipt</SelectItem>
+                      <SelectItem value="postpaid">Postpaid Service - payment after scholarship credited</SelectItem>
                     </SelectContent>
                   </Select>
                 )}
               />
-              {errors.plan && <p className="text-xs text-danger">{errors.plan.message}</p>}
+              {errors.serviceType && <p className="text-xs text-danger">{errors.serviceType.message}</p>}
             </div>
 
-            {selectedPlan && (
+            {selectedServiceType && (
               <div className="rounded-lg border border-dashed border-border bg-muted/30 p-3 text-xs text-muted-foreground">
-                You'll need to upload: <span className="font-medium text-foreground">Aadhaar Card</span> and{" "}
-                <span className="font-medium text-foreground">{selectedPlan === "2500" ? "Hostel Receipt" : "12th Marksheet"}</span> after
-                submitting this form.
+                You'll need to upload: <span className="font-medium text-foreground">Aadhaar Card</span>
+                {selectedServiceType === "postpaid" && (
+                  <>
+                    {" "}
+                    and <span className="font-medium text-foreground">12th Marksheet</span>
+                  </>
+                )}{" "}
+                after submitting this form. Hostel Receipt is uploaded separately by the admin once the physical receipt is ready.
               </div>
             )}
 
             <FormInput
-              label="MYSY Registration Number (optional)"
-              placeholder="Enter if already registered"
-              error={errors.mysyRegistrationNumber?.message}
-              {...register("mysyRegistrationNumber")}
-            />
-            <FormInput
-              label="MYSY Password (optional)"
-              type="password"
-              placeholder="Enter if already registered"
-              error={errors.mysyPassword?.message}
-              {...register("mysyPassword")}
+              label="Selling Price (₹)"
+              type="number"
+              placeholder="e.g. 6000"
+              error={errors.sellingPrice?.message}
+              {...register("sellingPrice")}
             />
 
             <Button type="submit" variant="gradient" size="lg" className="w-full" isLoading={isSubmitting}>

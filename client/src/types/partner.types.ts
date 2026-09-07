@@ -28,10 +28,13 @@ export interface PartnerProfile {
     photoUrl: string | null;
     isActive: boolean;
     createdAt: string;
+    // V2 NEW: per-partner buying cost for each service type, set only by Super Admin
+    prepaidCost: string | null;
+    postpaidCost: string | null;
   };
   stats: {
-    plan2500Count: number;
-    plan5000Count: number;
+    prepaidCount: number;
+    postpaidCount: number;
     commission: { pending: number; paid: number };
   };
   students: Array<{
@@ -39,7 +42,7 @@ export interface PartnerProfile {
     fullName: string;
     mobile: string;
     collegeName: string;
-    plan: "2500" | "5000";
+    serviceType: "prepaid" | "postpaid";
     status: string;
     createdAt: string;
   }>;

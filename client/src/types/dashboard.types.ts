@@ -1,8 +1,9 @@
 export interface DashboardCards {
   totalReferralPartners: number;
   totalStudents: number;
-  plan2500Count: number;
-  plan5000Count: number;
+  // V2 UPGRADE: plan2500Count/plan5000Count -> prepaidCount/postpaidCount
+  prepaidCount: number;
+  postpaidCount: number;
   pendingCount: number;
   completedCount: number;
   commission: {
@@ -30,7 +31,7 @@ export interface RecentStudent {
   id: string;
   fullName: string;
   collegeName: string;
-  plan: "2500" | "5000";
+  serviceType: "prepaid" | "postpaid";
   status: "pending" | "verified" | "completed" | "correction_requested";
   createdAt: string;
   referralPartner?: { id: string; fullName: string };

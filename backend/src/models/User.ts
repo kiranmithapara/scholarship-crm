@@ -21,6 +21,10 @@ export class User extends Model<InferAttributes<User>, InferCreationAttributes<U
   declare isActive: CreationOptional<boolean>;
   declare isEmailVerified: CreationOptional<boolean>;
   declare lastLoginAt: Date | null;
+  // V2: Per-partner buying (cost) price for each service type - only Super Admin can set these.
+  // Used as the reference "buying price" when a Referral Partner adds a student under this partner.
+  declare prepaidCost: string | null;
+  declare postpaidCost: string | null;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
   declare deletedAt: CreationOptional<Date | null>;
@@ -45,6 +49,8 @@ User.init(
     isActive: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
     isEmailVerified: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     lastLoginAt: { type: DataTypes.DATE, allowNull: true },
+    prepaidCost: { type: DataTypes.DECIMAL(10, 2), allowNull: true },
+    postpaidCost: { type: DataTypes.DECIMAL(10, 2), allowNull: true },
     createdAt: DataTypes.DATE,
     updatedAt: DataTypes.DATE,
     deletedAt: DataTypes.DATE,

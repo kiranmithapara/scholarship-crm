@@ -33,6 +33,16 @@ export const updatePartnerSchema = z.object({
   }),
 });
 
+// V2 NEW: Per-partner pricing - only Super Admin can set what a partner PAYS (their cost)
+// for each service type. This becomes the "buying price" auto-filled when that partner adds a student.
+export const updatePartnerPricingSchema = z.object({
+  params: z.object({ id: z.string().uuid("Invalid partner id") }),
+  body: z.object({
+    prepaidCost: z.coerce.number().nonnegative("Prepaid cost cannot be negative"),
+    postpaidCost: z.coerce.number().nonnegative("Postpaid cost cannot be negative"),
+  }),
+});
+
 export const createPartnerSchema = z.object({
   body: z.object({
     fullName: z.string().trim().min(2, "Full name must be at least 2 characters").max(150),

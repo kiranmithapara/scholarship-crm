@@ -23,18 +23,18 @@ export const studentController = {
 
   list: asyncHandler(async (req: Request, res: Response) => {
     if (!req.user) throw ApiError.unauthorized();
-    const { page, pageSize, search, plan, status } = req.query as unknown as {
+    const { page, pageSize, search, serviceType, status } = req.query as unknown as {
       page: number;
       pageSize: number;
       search?: string;
-      plan: "2500" | "5000" | "all";
+      serviceType: "prepaid" | "postpaid" | "all";
       status: "pending" | "verified" | "completed" | "correction_requested" | "all";
     };
 
     // Referral Admins ALWAYS get scoped results - this is the core "My Students" enforcement point
     const referralPartnerId = req.user.role === "referral_admin" ? req.user.id : undefined;
 
-    const result = await studentService.list({ page, pageSize, search, plan, status, referralPartnerId });
+    const result = await studentService.list({ page, pageSize, search, serviceType, status, referralPartnerId });
     ApiResponse.ok(res, result, "Students fetched successfully");
   }),
 
@@ -72,10 +72,21 @@ export const studentController = {
     ApiResponse.ok(res, student, "Application marked as completed");
   }),
 
-  updateScholarship: asyncHandler(async (req: Request, res: Response) => {
+  getActivityLogs: asyncHandler(async (req: Request, res: Response) => {
     if (!req.user) throw ApiError.unauthorized();
-    const student = await studentService.updateScholarship(req.params.id as string, req.body, req.user);
-    ApiResponse.ok(res, student, "Scholarship details updated successfully");
+    const logs = await studentService.getActivityLogs(req.params.id as string, req.user);
+    ApiResponse.ok(res, logs, "Student activity logs fetched successfully");
+  }),
+
+  addTimelineStage: asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) throw ApiError.unauthorized();
+    const entry = await studentService.addTimelineStage(req.params.id as string, req.body.event, req.body.note, req.user);
+    await activityLogService.logActivity(req, {
+      userId: req.user.id,
+      action: "TIMELINE_STAGE_ADDED",
+      details: { studentId: req.params.id, event: req.body.event },
+    });
+    ApiResponse.created(res, entry, "Timeline stage added successfully");
   }),
 
   uploadDocument: asyncHandler(async (req: Request, res: Response) => {
@@ -83,7 +94,7 @@ export const studentController = {
     if (!req.file) throw ApiError.badRequest("No file uploaded");
 
     const { url, fileName } = await uploadService.uploadFile(req.file.buffer, req.file.originalname, req.file.mimetype, "documents");
-    const document = await studentService.addDocument(req.params.id as string, req.body.type, { url, fileName }, req.user.id);
+    const document = await studentService.addDocument(req.params.id as string, req.body.type, { url, fileName }, req.user);
 
     ApiResponse.created(res, document, "Document uploaded successfully");
   }),

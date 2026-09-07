@@ -76,4 +76,35 @@ export const partnerController = {
 
     ApiResponse.ok(res, partner.toSafeJSON(), "Partner updated successfully");
   }),
+
+  updatePricing: asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) throw ApiError.unauthorized();
+    const { id } = req.params;
+    const { prepaidCost, postpaidCost } = req.body;
+
+    const partner = await partnerService.updatePricing(id as string, prepaidCost, postpaidCost);
+
+    await activityLogService.logActivity(req, {
+      userId: req.user.id,
+      action: "PARTNER_PRICING_UPDATED",
+      details: { partnerId: id, prepaidCost, postpaidCost },
+    });
+
+    ApiResponse.ok(res, partner.toSafeJSON(), "Partner pricing updated successfully");
+  }),
+
+  delete: asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) throw ApiError.unauthorized();
+    const { id } = req.params;
+
+    const partner = await partnerService.delete(id as string);
+
+    await activityLogService.logActivity(req, {
+      userId: req.user.id,
+      action: "PARTNER_DELETED",
+      details: { partnerId: id, partnerEmail: partner.email, partnerName: partner.fullName },
+    });
+
+    ApiResponse.ok(res, null, "Referral partner and all associated data deleted successfully");
+  }),
 };

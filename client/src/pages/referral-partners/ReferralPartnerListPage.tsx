@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Search, Eye, Pencil, Ban, CheckCircle, Users, UserCheck, UserX, UserPlus } from "lucide-react";
+import { Search, Eye, Pencil, Ban, CheckCircle, Users, UserCheck, UserX, UserPlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -25,7 +25,9 @@ import type { ReferralPartner } from "@/types/partner.types";
 export default function ReferralPartnerListPage() {
   const { data, isLoading, error, setPage, search, setSearch, status, setStatus, refetch } = usePartners();
   const [actionTarget, setActionTarget] = useState<ReferralPartner | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ReferralPartner | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   const handleToggleStatus = async () => {
@@ -43,6 +45,21 @@ export default function ReferralPartnerListPage() {
     }
   };
 
+  const handleDeletePartner = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      await partnerService.delete(deleteTarget.id);
+      toast.success("Partner and all associated data deleted successfully");
+      setDeleteTarget(null);
+      refetch();
+    } catch {
+      toast.error("Could not delete referral partner");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (error) {
     return (
       <div className="p-6">
@@ -55,11 +72,11 @@ export default function ReferralPartnerListPage() {
   const blockedCount = data?.items.filter((p) => !p.isActive).length ?? 0;
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-4 sm:p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Referral Partners</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Manage all referral partners and their performance.</p>
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">Referral Partners</h1>
+          <p className="mt-1 text-xs sm:text-sm text-muted-foreground">Manage all referral partners and their performance.</p>
         </div>
         <Button onClick={() => setIsCreateOpen(true)} variant="gradient">
           <UserPlus className="mr-2 h-4 w-4" /> Add Partner
@@ -191,6 +208,15 @@ export default function ReferralPartnerListPage() {
                             >
                               {partner.isActive ? <Ban className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
                             </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-danger hover:bg-danger/10"
+                              onClick={() => setDeleteTarget(partner)}
+                              aria-label="Delete"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
                         </td>
                       </tr>
@@ -219,6 +245,17 @@ export default function ReferralPartnerListPage() {
         variant={actionTarget?.isActive ? "destructive" : "default"}
         isLoading={isUpdating}
         onConfirm={handleToggleStatus}
+      />
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title={`Delete ${deleteTarget?.fullName}?`}
+        description={`This will PERMANENTLY delete ${deleteTarget?.fullName} AND all associated students, documents, payments, timeline entries, and commissions. This action CANNOT be undone.`}
+        confirmLabel="Delete Partner & All Data"
+        variant="destructive"
+        isLoading={isDeleting}
+        onConfirm={handleDeletePartner}
       />
 
       <CreatePartnerDialog

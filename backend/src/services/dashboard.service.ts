@@ -30,8 +30,8 @@ export const dashboardService = {
     const [
       totalReferralPartners,
       totalStudents,
-      plan2500Count,
-      plan5000Count,
+      prepaidCount,
+      postpaidCount,
       pendingCount,
       completedCount,
       commissionTotals,
@@ -41,8 +41,8 @@ export const dashboardService = {
     ] = await Promise.all([
       isSuperAdmin ? User.count({ where: { role: "referral_admin" } }) : Promise.resolve(0),
       Student.count({ where: studentWhere }),
-      Student.count({ where: { ...studentWhere, plan: "2500" } }),
-      Student.count({ where: { ...studentWhere, plan: "5000" } }),
+      Student.count({ where: { ...studentWhere, serviceType: "prepaid" } }),
+      Student.count({ where: { ...studentWhere, serviceType: "postpaid" } }),
       Student.count({ where: { ...studentWhere, status: { [Op.in]: ["pending", "correction_requested"] } } }),
       Student.count({ where: { ...studentWhere, status: "completed" } }),
       Commission.findAll({
@@ -112,8 +112,8 @@ export const dashboardService = {
       cards: {
         totalReferralPartners,
         totalStudents,
-        plan2500Count,
-        plan5000Count,
+        prepaidCount,
+        postpaidCount,
         pendingCount,
         completedCount,
         commission: {

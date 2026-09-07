@@ -26,17 +26,17 @@ export default function MyStudentsPage() {
     );
   }
 
-  const plan2500 = data?.items.filter((s) => s.plan === "2500").length ?? 0;
-  const plan5000 = data?.items.filter((s) => s.plan === "5000").length ?? 0;
+  const prepaidCount = data?.items.filter((s) => s.serviceType === "prepaid").length ?? 0;
+  const postpaidCount = data?.items.filter((s) => s.serviceType === "postpaid").length ?? 0;
   const pending = data?.items.filter((s) => s.status === "pending" || s.status === "correction_requested").length ?? 0;
   const completed = data?.items.filter((s) => s.status === "completed").length ?? 0;
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-4 sm:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">My Students</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Students you've referred for scholarships.</p>
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">My Students</h1>
+          <p className="mt-1 text-xs sm:text-sm text-muted-foreground">Students you've referred for scholarships.</p>
         </div>
         <Button asChild variant="gradient">
           <Link to={ROUTES.APPLY_SCHOLARSHIP}>
@@ -46,7 +46,7 @@ export default function MyStudentsPage() {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
         <Card>
           <CardContent className="p-5">
             <Users className="mb-2 h-4.5 w-4.5 text-primary" />
@@ -57,15 +57,15 @@ export default function MyStudentsPage() {
         <Card>
           <CardContent className="p-5">
             <Wallet className="mb-2 h-4.5 w-4.5 text-primary" />
-            <p className="text-xs text-muted-foreground">₹2500</p>
-            <p className="text-lg font-semibold text-foreground">{plan2500}</p>
+            <p className="text-xs text-muted-foreground">Prepaid</p>
+            <p className="text-lg font-semibold text-foreground">{prepaidCount}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-5">
             <Wallet className="mb-2 h-4.5 w-4.5 text-primary" />
-            <p className="text-xs text-muted-foreground">₹5000</p>
-            <p className="text-lg font-semibold text-foreground">{plan5000}</p>
+            <p className="text-xs text-muted-foreground">Postpaid</p>
+            <p className="text-lg font-semibold text-foreground">{postpaidCount}</p>
           </CardContent>
         </Card>
         <Card>
@@ -125,7 +125,7 @@ export default function MyStudentsPage() {
                     <StatusBadge status={student.status} />
                   </div>
                   <div className="mb-4 flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>₹{student.plan} Plan</span>
+                    <span className="capitalize">{student.serviceType} Service</span>
                     <span>•</span>
                     <span>{formatDate(student.createdAt)}</span>
                   </div>

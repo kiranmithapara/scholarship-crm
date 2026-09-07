@@ -1,4 +1,4 @@
-import { Moon, Sun, LogOut, User as UserIcon } from "lucide-react";
+import { Moon, Sun, LogOut, User as UserIcon, Menu, GraduationCap } from "lucide-react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
@@ -8,15 +8,38 @@ import { getInitials } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "@/constants/routes.constant";
 
-/** Topbar - theme toggle + user menu, present on every dashboard page. */
-export function Topbar() {
+interface TopbarProps {
+  onMenuClick?: () => void;
+}
+
+/** Topbar - mobile menu trigger, theme toggle + user menu, present on every dashboard page. */
+export function Topbar({ onMenuClick }: TopbarProps) {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-border bg-card/70 px-6 backdrop-blur-xl">
-      <div />
+    <header className="flex h-16 items-center justify-between border-b border-border bg-card/70 px-4 sm:px-6 backdrop-blur-xl">
+      <div className="flex items-center gap-3">
+        {onMenuClick && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onMenuClick}
+            className="lg:hidden"
+            aria-label="Open menu"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        )}
+        <div className="flex items-center gap-2 lg:hidden">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-primary text-white">
+            <GraduationCap className="h-4 w-4" />
+          </div>
+          <span className="text-sm font-semibold text-foreground sm:text-base">Scholarship CRM</span>
+        </div>
+      </div>
+
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Toggle theme">
           {theme === "light" ? <Moon className="h-4.5 w-4.5" /> : <Sun className="h-4.5 w-4.5" />}
@@ -25,7 +48,7 @@ export function Topbar() {
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
             <button className="flex items-center gap-2 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              <Avatar>
+              <Avatar className="h-8 w-8 sm:h-9 sm:w-9">
                 <AvatarImage src={user?.photoUrl ?? undefined} alt={user?.fullName} />
                 <AvatarFallback>{user ? getInitials(user.fullName) : ""}</AvatarFallback>
               </Avatar>

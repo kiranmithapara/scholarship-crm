@@ -1,5 +1,7 @@
-import { useParams, Link } from "react-router-dom";
-import { GraduationCap, Clock, CheckCircle2, ArrowLeft } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { GraduationCap, Clock, CheckCircle2, ArrowLeft, IndianRupee, Save, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -7,15 +9,33 @@ import { ErrorState } from "@/components/common/ErrorState";
 import { EmptyState } from "@/components/common/EmptyState";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { QuickActions } from "@/components/common/QuickActions";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { FormInput } from "@/components/forms/FormInput";
 import { usePartnerProfile } from "@/hooks/usePartnerProfile";
+import { partnerService } from "@/services/partner.service";
 import { getInitials, formatCurrency, formatDate } from "@/lib/utils";
 import { ROUTES, buildPath } from "@/constants/routes.constant";
 
-/** ReferralPartnerProfilePage - Page 5. Partner details, plan/commission breakdown, full student list. */
+/** ReferralPartnerProfilePage - Page 5. Partner details, service-type/commission breakdown,
+ * pricing editor (V2 NEW - only Super Admin can set a partner's buying cost), full student list. */
 export default function ReferralPartnerProfilePage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { data, isLoading, error, refetch } = usePartnerProfile(id);
+
+  const [prepaidCost, setPrepaidCost] = useState("");
+  const [postpaidCost, setPostpaidCost] = useState("");
+  const [isSavingPricing, setIsSavingPricing] = useState(false);
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    if (!data) return;
+    setPrepaidCost(data.partner.prepaidCost ?? "");
+    setPostpaidCost(data.partner.postpaidCost ?? "");
+  }, [data]);
 
   if (error) {
     return (
@@ -25,7 +45,7 @@ export default function ReferralPartnerProfilePage() {
     );
   }
 
-  if (isLoading || !data) {
+  if (isLoading || !data || !id) {
     return (
       <div className="space-y-4 p-6">
         <Skeleton className="h-24 w-full" />
@@ -40,6 +60,38 @@ export default function ReferralPartnerProfilePage() {
   }
 
   const { partner, stats, students } = data;
+
+  const handleSavePricing = async () => {
+    const prepaid = Number(prepaidCost);
+    const postpaid = Number(postpaidCost);
+    if (Number.isNaN(prepaid) || Number.isNaN(postpaid) || prepaid < 0 || postpaid < 0) {
+      toast.error("Enter valid, non-negative prices for both service types");
+      return;
+    }
+    setIsSavingPricing(true);
+    try {
+      await partnerService.updatePricing(id, prepaid, postpaid);
+      toast.success("Pricing updated successfully");
+      refetch();
+    } catch {
+      toast.error("Could not update pricing");
+    } finally {
+      setIsSavingPricing(false);
+    }
+  };
+
+  const handleDeletePartner = async () => {
+    if (!id) return;
+    setIsDeleting(true);
+    try {
+      await partnerService.delete(id);
+      toast.success("Referral partner and all associated data deleted successfully");
+      navigate(ROUTES.REFERRAL_PARTNERS);
+    } catch {
+      toast.error("Could not delete referral partner");
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <div className="space-y-6 p-6">
@@ -64,7 +116,12 @@ export default function ReferralPartnerProfilePage() {
               <p className="text-sm text-muted-foreground">Joined {formatDate(partner.createdAt)}</p>
             </div>
           </div>
-          <QuickActions mobile={partner.mobile} whatsappMessage={`Hi ${partner.fullName}, `} />
+          <div className="flex items-center gap-2">
+            <QuickActions mobile={partner.mobile} whatsappMessage={`Hi ${partner.fullName}, `} />
+            <Button variant="destructive" size="sm" onClick={() => setIsConfirmDeleteOpen(true)}>
+              <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete Partner
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -75,8 +132,8 @@ export default function ReferralPartnerProfilePage() {
             <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-primary-50 text-primary">
               <GraduationCap className="h-4.5 w-4.5" />
             </div>
-            <p className="text-xs text-muted-foreground">₹2500 Plan Students</p>
-            <p className="text-xl font-semibold text-foreground">{stats.plan2500Count}</p>
+            <p className="text-xs text-muted-foreground">Prepaid Students</p>
+            <p className="text-xl font-semibold text-foreground">{stats.prepaidCount}</p>
           </CardContent>
         </Card>
         <Card>
@@ -84,8 +141,8 @@ export default function ReferralPartnerProfilePage() {
             <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-primary-50 text-primary">
               <GraduationCap className="h-4.5 w-4.5" />
             </div>
-            <p className="text-xs text-muted-foreground">₹5000 Plan Students</p>
-            <p className="text-xl font-semibold text-foreground">{stats.plan5000Count}</p>
+            <p className="text-xs text-muted-foreground">Postpaid Students</p>
+            <p className="text-xl font-semibold text-foreground">{stats.postpaidCount}</p>
           </CardContent>
         </Card>
         <Card>
@@ -108,6 +165,40 @@ export default function ReferralPartnerProfilePage() {
         </Card>
       </div>
 
+      {/* V2 NEW: Pricing editor - only Super Admin sets what this partner PAYS per service type */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-1.5">
+            <IndianRupee className="h-3.5 w-3.5" /> Partner Pricing
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <p className="mb-4 text-xs text-muted-foreground">
+            The buying (cost) price this partner pays per service type. This becomes the reference cost when they add a new student -
+            their profit is automatically calculated as Selling Price minus this Buying Price.
+          </p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormInput
+              label="Prepaid Service Cost (₹)"
+              type="number"
+              value={prepaidCost}
+              onChange={(e) => setPrepaidCost(e.target.value)}
+              placeholder="e.g. 2000"
+            />
+            <FormInput
+              label="Postpaid Service Cost (₹)"
+              type="number"
+              value={postpaidCost}
+              onChange={(e) => setPostpaidCost(e.target.value)}
+              placeholder="e.g. 4000"
+            />
+          </div>
+          <Button variant="gradient" size="sm" className="mt-4" onClick={handleSavePricing} isLoading={isSavingPricing}>
+            <Save className="mr-1.5 h-3.5 w-3.5" /> Save Pricing
+          </Button>
+        </CardContent>
+      </Card>
+
       {/* Student list */}
       <Card>
         <CardHeader>
@@ -123,7 +214,7 @@ export default function ReferralPartnerProfilePage() {
                   <tr className="border-b border-border text-left text-xs text-muted-foreground">
                     <th className="pb-2 font-medium">Name</th>
                     <th className="pb-2 font-medium">College</th>
-                    <th className="pb-2 font-medium">Plan</th>
+                    <th className="pb-2 font-medium">Service Type</th>
                     <th className="pb-2 font-medium">Status</th>
                     <th className="pb-2 font-medium">Actions</th>
                   </tr>
@@ -137,7 +228,7 @@ export default function ReferralPartnerProfilePage() {
                         </Link>
                       </td>
                       <td className="py-3 text-muted-foreground">{student.collegeName}</td>
-                      <td className="py-3 text-muted-foreground">₹{student.plan}</td>
+                      <td className="py-3 capitalize text-muted-foreground">{student.serviceType}</td>
                       <td className="py-3">
                         <StatusBadge status={student.status} />
                       </td>
@@ -152,6 +243,17 @@ export default function ReferralPartnerProfilePage() {
           )}
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={isConfirmDeleteOpen}
+        onOpenChange={setIsConfirmDeleteOpen}
+        title={`Delete ${partner.fullName}?`}
+        description={`This will PERMANENTLY delete ${partner.fullName} AND all associated students (${students.length}), documents, payments, timeline entries, and commissions. This action CANNOT be undone.`}
+        confirmLabel="Delete Partner & All Data"
+        variant="destructive"
+        isLoading={isDeleting}
+        onConfirm={handleDeletePartner}
+      />
     </div>
   );
 }

@@ -1,12 +1,22 @@
 import api from "@/lib/axios";
 import type { ApiResponse } from "@/types/api.types";
-import type { CreateStudentInput, StudentDetails, StudentListResult, DocumentType, PaymentItem, StudentDocumentItem } from "@/types/student.types";
+import type {
+  CreateStudentInput,
+  StudentDetails,
+  StudentListResult,
+  DocumentType,
+  PaymentItem,
+  StudentDocumentItem,
+  TimelineEvent,
+  TimelineItem,
+} from "@/types/student.types";
+import type { ActivityLogItem } from "@/types/logs.types";
 
 interface ListParams {
   page: number;
   pageSize: number;
   search?: string;
-  plan?: string;
+  serviceType?: string;
   status?: string;
 }
 
@@ -43,11 +53,10 @@ export const studentService = {
     await api.post(`/students/${id}/complete`);
   },
 
-  updateScholarship: async (
-    id: string,
-    payload: { mysyRegistrationNumber?: string; mysyPassword?: string; scholarshipStatus?: string }
-  ): Promise<void> => {
-    await api.patch(`/students/${id}/scholarship`, payload);
+  /** V2 NEW: Manually add a scholarship-progress timeline stage (replaces updateScholarship). */
+  addTimelineStage: async (id: string, event: TimelineEvent, note?: string): Promise<TimelineItem> => {
+    const { data } = await api.post<ApiResponse<TimelineItem>>(`/students/${id}/timeline-stage`, { event, note });
+    return data.data;
   },
 
   uploadDocument: async (id: string, type: DocumentType, file: File): Promise<StudentDocumentItem> => {
@@ -62,6 +71,12 @@ export const studentService = {
 
   addPayment: async (id: string, amount: number, transactionId?: string): Promise<PaymentItem> => {
     const { data } = await api.post<ApiResponse<PaymentItem>>(`/students/${id}/payments`, { amount, transactionId });
+    return data.data;
+  },
+
+  /** V2 NEW: activity log entries scoped to this student, for the Activity Logs tab. */
+  getActivityLogs: async (id: string): Promise<ActivityLogItem[]> => {
+    const { data } = await api.get<ApiResponse<ActivityLogItem[]>>(`/students/${id}/activity-logs`);
     return data.data;
   },
 
