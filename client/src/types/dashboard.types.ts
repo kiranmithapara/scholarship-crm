@@ -11,6 +11,12 @@ export interface DashboardCards {
     pending: number;
     paid: number;
   };
+  // V4 NEW: what the Super Admin personally keeps per application (buying price), separate
+  // from the `commission` figures above which are what the Referral Partner earns.
+  adminRevenue: {
+    pending: number;
+    paid: number;
+  };
 }
 
 export interface MonthlyDataPoint {

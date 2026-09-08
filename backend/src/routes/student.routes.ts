@@ -14,11 +14,12 @@ import {
   addPaymentSchema,
   updatePaymentStatusSchema,
   addTimelineStageSchema,
+  updateCommissionStatusSchema, // <-- add import
 } from "@/validators/student.validator";
 
 const router = Router();
 
-router.use(authMiddleware); // every student route requires login; fine-grained scoping happens in the service layer
+router.use(authMiddleware);
 
 router.get("/", validate(listStudentsSchema), studentController.list);
 router.post("/", validate(createStudentSchema), studentController.create);
@@ -31,13 +32,17 @@ router.post("/:id/request-correction", roleMiddleware("super_admin"), validate(r
 router.post("/:id/complete", roleMiddleware("super_admin"), validate(studentIdParamSchema), studentController.markCompleted);
 router.patch("/:id/payments/:paymentId/status", roleMiddleware("super_admin"), validate(updatePaymentStatusSchema), studentController.updatePaymentStatus);
 
+// V3 NEW: Toggle commission status for this student (Super Admin only).
+router.patch(
+  "/:id/commission/status",
+  roleMiddleware("super_admin"),
+  validate(updateCommissionStatusSchema),
+  studentController.updateCommissionStatus
+);
+
 // ---------- Shared (ownership-checked inside the service) ----------
-// V2 UPGRADE: /scholarship endpoint removed (MYSY fields gone) - replaced by /timeline-stage,
-// the new manual 13-stage scholarship-progress tracker.
 router.post("/:id/timeline-stage", validate(addTimelineStageSchema), studentController.addTimelineStage);
 router.get("/:id/activity-logs", validate(studentIdParamSchema), studentController.getActivityLogs);
-// V2 UPGRADE: hostel_receipt upload permission (Super Admin only) is enforced inside
-// studentService.addDocument, not here, since it depends on the document `type` in the body.
 router.post("/:id/documents", uploadSingleFile, validate(documentTypeSchema), studentController.uploadDocument);
 router.post("/:id/payments", validate(addPaymentSchema), studentController.addPayment);
 

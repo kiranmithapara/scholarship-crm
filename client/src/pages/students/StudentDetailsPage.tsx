@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ErrorState } from "@/components/common/ErrorState";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { QuickActions } from "@/components/common/QuickActions";
@@ -32,6 +32,7 @@ import { FileUploadCard } from "@/components/forms/FileUploadCard";
 import { useStudentDetails } from "@/hooks/useStudentDetails";
 import { useAuth } from "@/hooks/useAuth";
 import { studentService } from "@/services/student.service";
+import { partnerService } from "@/services/partner.service";
 import { formatDate, formatDateTime, formatCurrency } from "@/lib/utils";
 import { ROUTES } from "@/constants/routes.constant";
 import { ROLES } from "@/constants/roles.constant";
@@ -57,21 +58,15 @@ const timelineLabels: Record<TimelineEvent, string> = {
   receipt_uploaded: "Receipt Uploaded",
 };
 
-/** The 13 core stages selectable when manually advancing scholarship progress (in spec order). */
+/** V4 CHANGE: simplified from 13 stages down to the 6 the business actually uses day-to-day,
+ * selected via radio buttons (single choice) instead of the old dropdown. */
 const CORE_STAGES: TimelineEvent[] = [
   "application_filled",
   "application_locked_by_student",
   "documents_submitted",
   "help_center_verification_completed",
-  "commissioner_verification",
-  "query_raised",
-  "query_resolved",
   "scholarship_approved",
-  "scholarship_amount_credited",
-  "payment_pending",
   "payment_received",
-  "payment_verified",
-  "case_completed",
 ];
 
 /** StudentDetailsPage - V2 redesign. 9 Tabs: Overview, Documents, Scholarship Progress, Receipt,
@@ -92,6 +87,7 @@ export default function StudentDetailsPage() {
 
   const [activityLogs, setActivityLogs] = useState<ActivityLogItem[] | null>(null);
   const [activityLoading, setActivityLoading] = useState(true);
+  const [isUpdatingCommission, setIsUpdatingCommission] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -172,6 +168,23 @@ export default function StudentDetailsPage() {
   const handleUploadDocument = async (type: DocumentType, file: File) => {
     await studentService.uploadDocument(student.id, type, file);
     refetch();
+  };
+
+  /** V4 NEW: toggles this student's commission between pending/paid, right from the Student
+   * Details page (mirrors the same action already available on the Partner Profile page). */
+  const handleToggleCommission = async () => {
+    if (!student.commission) return;
+    const nextStatus = student.commission.status === "pending" ? "paid" : "pending";
+    setIsUpdatingCommission(true);
+    try {
+      await partnerService.updateCommissionStatus(student.referralPartner.id, student.commission.id, nextStatus);
+      toast.success(`Commission marked as ${nextStatus}`);
+      refetch();
+    } catch {
+      toast.error("Could not update commission status");
+    } finally {
+      setIsUpdatingCommission(false);
+    }
   };
 
   const handleAddStage = async () => {
@@ -335,18 +348,18 @@ export default function StudentDetailsPage() {
                 </p>
                 <div className="space-y-1.5">
                   <Label>Stage</Label>
-                  <Select value={selectedStage} onValueChange={(v) => setSelectedStage(v as TimelineEvent)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a stage" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CORE_STAGES.map((stage) => (
-                        <SelectItem key={stage} value={stage}>
-                          {timelineLabels[stage]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <RadioGroup value={selectedStage} onValueChange={(v) => setSelectedStage(v as TimelineEvent)} className="rounded-lg border border-border p-3">
+                    {CORE_STAGES.map((stage) => (
+                      <label
+                        key={stage}
+                        htmlFor={`stage-${stage}`}
+                        className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-sm hover:bg-accent/60"
+                      >
+                        <RadioGroupItem value={stage} id={`stage-${stage}`} />
+                        <span className="text-foreground">{timelineLabels[stage]}</span>
+                      </label>
+                    ))}
+                  </RadioGroup>
                 </div>
                 <div className="space-y-1.5">
                   <Label>Note (optional)</Label>
@@ -424,7 +437,20 @@ export default function StudentDetailsPage() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Commission Status</p>
-                <p className="mt-0.5"><StatusBadge status={student.commission?.status ?? "pending"} /></p>
+                <div className="mt-0.5 flex items-center gap-2">
+                  <StatusBadge status={student.commission?.status ?? "pending"} />
+                  {isSuperAdmin && student.commission && (
+                    <Button
+                      variant={student.commission.status === "pending" ? "gradient" : "outline"}
+                      size="sm"
+                      className="h-7 px-2.5 text-xs"
+                      onClick={handleToggleCommission}
+                      isLoading={isUpdatingCommission}
+                    >
+                      {student.commission.status === "pending" ? "Mark as Paid" : "Revert to Pending"}
+                    </Button>
+                  )}
+                </div>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Payment Status</p>

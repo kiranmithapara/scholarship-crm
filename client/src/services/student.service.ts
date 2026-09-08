@@ -83,4 +83,9 @@ export const studentService = {
   updatePaymentStatus: async (id: string, paymentId: string, status: string): Promise<void> => {
     await api.patch(`/students/${id}/payments/${paymentId}/status`, { status });
   },
+
+  /** V2 NEW: Mark a student's commission paid/pending - the button on Student Details. */
+  updateCommissionStatus: async (id: string, status: "pending" | "paid"): Promise<void> => {
+    await api.patch(`/students/${id}/commission/status`, { status });
+  },
 };

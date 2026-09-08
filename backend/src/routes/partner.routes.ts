@@ -11,6 +11,7 @@ import {
   updatePartnerSchema,
   createPartnerSchema,
   updatePartnerPricingSchema,
+  updateCommissionStatusSchema,
 } from "@/validators/partner.validator";
 
 const router = Router();
@@ -25,6 +26,9 @@ router.patch("/:id/status", validate(updatePartnerStatusSchema), partnerControll
 router.patch("/:id", validate(updatePartnerSchema), partnerController.update);
 // V2 NEW: Super Admin sets each partner's Prepaid/Postpaid buying cost
 router.patch("/:id/pricing", validate(updatePartnerPricingSchema), partnerController.updatePricing);
+// V3 NEW: view + settle this partner's commissions (fixes the missing "mark as paid" gap)
+router.get("/:id/commissions", validate(partnerIdParamSchema), partnerController.getCommissions);
+router.patch("/:id/commissions/:commissionId/status", validate(updateCommissionStatusSchema), partnerController.updateCommissionStatus);
 router.delete("/:id", validate(partnerIdParamSchema), partnerController.delete);
 
 export default router;

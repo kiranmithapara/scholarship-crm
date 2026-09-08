@@ -18,6 +18,15 @@ export interface PartnerListResult {
   totalPages: number;
 }
 
+export interface CommissionItem {
+  id: string;
+  amount: string;
+  status: "pending" | "paid";
+  paidAt: string | null;
+  createdAt: string;
+  student: { id: string; fullName: string; serviceType: "prepaid" | "postpaid" };
+}
+
 export interface PartnerProfile {
   partner: {
     id: string;

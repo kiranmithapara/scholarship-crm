@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { GraduationCap, Clock, CheckCircle2, ArrowLeft, IndianRupee, Save, Trash2 } from "lucide-react";
+import { isAxiosError } from "axios";
+import { GraduationCap, Clock, CheckCircle2, ArrowLeft, IndianRupee, Save, Trash2, Wallet, RotateCcw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,6 +18,7 @@ import { usePartnerProfile } from "@/hooks/usePartnerProfile";
 import { partnerService } from "@/services/partner.service";
 import { getInitials, formatCurrency, formatDate } from "@/lib/utils";
 import { ROUTES, buildPath } from "@/constants/routes.constant";
+import type { CommissionItem } from "@/types/partner.types";
 
 /** ReferralPartnerProfilePage - Page 5. Partner details, service-type/commission breakdown,
  * pricing editor (V2 NEW - only Super Admin can set a partner's buying cost), full student list. */
@@ -31,11 +33,28 @@ export default function ReferralPartnerProfilePage() {
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // V3 NEW: per-partner commission list + mark-as-paid state (fixes the missing "paid" action)
+  const [commissions, setCommissions] = useState<CommissionItem[] | null>(null);
+  const [commissionsLoading, setCommissionsLoading] = useState(true);
+  const [updatingCommissionId, setUpdatingCommissionId] = useState<string | null>(null);
+
+  const fetchCommissions = () => {
+    if (!id) return;
+    setCommissionsLoading(true);
+    partnerService
+      .getCommissions(id)
+      .then(setCommissions)
+      .catch(() => setCommissions([]))
+      .finally(() => setCommissionsLoading(false));
+  };
+
   useEffect(() => {
     if (!data) return;
     setPrepaidCost(data.partner.prepaidCost ?? "");
     setPostpaidCost(data.partner.postpaidCost ?? "");
   }, [data]);
+
+  useEffect(fetchCommissions, [id]);
 
   if (error) {
     return (
@@ -85,11 +104,29 @@ export default function ReferralPartnerProfilePage() {
     setIsDeleting(true);
     try {
       await partnerService.delete(id);
-      toast.success("Referral partner and all associated data deleted successfully");
+      toast.success("Referral partner deleted successfully");
       navigate(ROUTES.REFERRAL_PARTNERS);
-    } catch {
-      toast.error("Could not delete referral partner");
+    } catch (err) {
+      const message = isAxiosError(err) ? err.response?.data?.message : null;
+      toast.error(message ?? "Could not delete referral partner");
       setIsDeleting(false);
+    }
+  };
+
+  /** V3 NEW: toggles a commission between pending/paid - this is the fix for the previously-missing action. */
+  const handleToggleCommission = async (commission: CommissionItem) => {
+    if (!id) return;
+    const nextStatus = commission.status === "pending" ? "paid" : "pending";
+    setUpdatingCommissionId(commission.id);
+    try {
+      await partnerService.updateCommissionStatus(id, commission.id, nextStatus);
+      toast.success(`Commission marked as ${nextStatus}`);
+      fetchCommissions();
+      refetch(); // also refresh the Commission Pending/Paid summary cards above
+    } catch {
+      toast.error("Could not update commission status");
+    } finally {
+      setUpdatingCommissionId(null);
     }
   };
 
@@ -118,7 +155,13 @@ export default function ReferralPartnerProfilePage() {
           </div>
           <div className="flex items-center gap-2">
             <QuickActions mobile={partner.mobile} whatsappMessage={`Hi ${partner.fullName}, `} />
-            <Button variant="destructive" size="sm" onClick={() => setIsConfirmDeleteOpen(true)}>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setIsConfirmDeleteOpen(true)}
+              disabled={students.length > 0}
+              title={students.length > 0 ? "Cannot delete - this partner has students on record" : "Delete partner"}
+            >
               <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete Partner
             </Button>
           </div>
@@ -199,6 +242,76 @@ export default function ReferralPartnerProfilePage() {
         </CardContent>
       </Card>
 
+      {/* V3 NEW: Commissions list - shows exactly what's owed per student, with a Mark as Paid
+          action. This is the fix for the previously-missing pending->paid workflow. */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-1.5">
+            <Wallet className="h-3.5 w-3.5" /> Commissions
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          {commissionsLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          ) : !commissions || commissions.length === 0 ? (
+            <EmptyState icon={Wallet} title="No commissions yet" description="Commissions are created automatically once an application is verified." />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                    <th className="pb-2 font-medium">Student</th>
+                    <th className="pb-2 font-medium">Service Type</th>
+                    <th className="pb-2 font-medium">Amount</th>
+                    <th className="pb-2 font-medium">Status</th>
+                    <th className="pb-2 font-medium text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {commissions.map((commission) => (
+                    <tr key={commission.id} className="border-b border-border/60 last:border-0 hover:bg-accent/40">
+                      <td className="py-3">
+                        <Link to={buildPath(ROUTES.STUDENT_DETAILS, { id: commission.student.id })} className="font-medium text-foreground hover:text-primary">
+                          {commission.student.fullName}
+                        </Link>
+                      </td>
+                      <td className="py-3 capitalize text-muted-foreground">{commission.student.serviceType}</td>
+                      <td className="py-3 font-medium text-foreground">{formatCurrency(Number(commission.amount))}</td>
+                      <td className="py-3">
+                        <StatusBadge status={commission.status} />
+                        {commission.paidAt && <p className="mt-0.5 text-xs text-muted-foreground">Paid {formatDate(commission.paidAt)}</p>}
+                      </td>
+                      <td className="py-3 text-right">
+                        <Button
+                          variant={commission.status === "pending" ? "gradient" : "outline"}
+                          size="sm"
+                          onClick={() => handleToggleCommission(commission)}
+                          isLoading={updatingCommissionId === commission.id}
+                        >
+                          {commission.status === "pending" ? (
+                            <>
+                              <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" /> Mark as Paid
+                            </>
+                          ) : (
+                            <>
+                              <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Revert to Pending
+                            </>
+                          )}
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Student list */}
       <Card>
         <CardHeader>
@@ -248,8 +361,12 @@ export default function ReferralPartnerProfilePage() {
         open={isConfirmDeleteOpen}
         onOpenChange={setIsConfirmDeleteOpen}
         title={`Delete ${partner.fullName}?`}
-        description={`This will PERMANENTLY delete ${partner.fullName} AND all associated students (${students.length}), documents, payments, timeline entries, and commissions. This action CANNOT be undone.`}
-        confirmLabel="Delete Partner & All Data"
+        description={
+          students.length > 0
+            ? `${partner.fullName} has ${students.length} student record(s). Student data is preserved permanently and cannot be deleted - block this partner instead to prevent further access.`
+            : `This will permanently delete ${partner.fullName}'s account. This partner has no students on record, so this action is safe and cannot be undone.`
+        }
+        confirmLabel="Delete Partner"
         variant="destructive"
         isLoading={isDeleting}
         onConfirm={handleDeletePartner}

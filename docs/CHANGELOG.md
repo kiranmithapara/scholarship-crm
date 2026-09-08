@@ -1,5 +1,31 @@
 # CHANGELOG
 
+## V3 — Simplified Progress Tracker + Admin Commission Split + Commission Paid Toggle
+
+- **Scholarship Progress narrowed to 4 checkpoints, radio buttons** — the manual "Add Progress
+  Stage" picker on Student Details → Scholarship Progress now only offers `Application Filled`,
+  `Help Center Verification Completed`, `Scholarship Approved`, `Payment Received`, chosen via
+  radio buttons instead of a dropdown (`backend/src/validators/student.validator.ts` `addTimelineStageSchema`,
+  `client/src/pages/students/StudentDetailsPage.tsx` `PROGRESS_STAGES`). The full 15-stage
+  `TimelineEvent` enum is unchanged and the Timeline tab still shows every stage — the other
+  stages are still written automatically by other flows (create/verify/complete/correction/upload).
+- **Admin's own commission (`commissions.admin_amount`)** — Super Admin's earning on each
+  application is now tracked separately from the Referral Partner's profit. `amount` stays the
+  partner's profit (sellingPrice − buyingPrice); `adminAmount` is the partner's buyingPrice (what
+  the partner pays the admin), snapshotted at verify time. The Super Admin Dashboard's Commission
+  (Pending/Paid/Total) cards now sum `adminAmount`; the Referral Partner's own dashboard and the
+  Partner Profile page are unchanged and keep summing `amount`.
+  See `20260201000004-add-admin-amount-to-commissions.js`.
+  - Example: a partner is charged ₹1500 for a Prepaid receipt (`buyingPrice`) and sells it to a
+    student for ₹2000 (`sellingPrice`) → partner's commission = ₹500 (`amount`), Super Admin's
+    commission = ₹1500 (`adminAmount`).
+- **Mark Commission Paid button** — Student Details → Financial Summary now has a button that
+  toggles that student's commission between `pending` and `paid`
+  (`PATCH /students/:id/commission/status`, Super Admin only). Since the partner's `amount` and
+  the admin's `adminAmount` live on the same Commission row, one click moves the student out of
+  "Pending" and into "Paid" everywhere at once — the Super Admin Dashboard cards, and the
+  Referral Partner's own Profile page commission totals.
+
 ## V2 — Hostel Receipt Business CRM Upgrade
 
 The project was upgraded from a generic Scholarship CRM into a purpose-built CRM for a Hostel Receipt business, following the actual referral-partner → student → scholarship-tracking → payment workflow used in production. **No functionality was removed without replacement** — every V1 concept was either renamed to match the real business terminology or replaced with a more accurate model.

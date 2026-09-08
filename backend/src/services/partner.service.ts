@@ -1,5 +1,5 @@
 import { Op, fn, col, literal } from "sequelize";
-import { User, Student, Commission, StudentDocument, Payment, StudentTimeline, LoginLog, ActivityLog, Otp } from "@/models";
+import { User, Student, Commission, LoginLog, ActivityLog, Otp } from "@/models";
 import { sequelize } from "@/config/database.config";
 import { ApiError } from "@/utils/apiError";
 import { hashPassword } from "@/helpers/password.helper";
@@ -137,6 +137,34 @@ export const partnerService = {
     };
   },
 
+  /** V3 NEW: Lists every commission (one per verified student) for this partner, with the
+   * student's name attached, so Super Admin can see exactly what's owed and to whom before
+   * marking anything paid. */
+  getCommissions: async (id: string) => {
+    const partner = await User.findOne({ where: { id, role: "referral_admin" } });
+    if (!partner) throw ApiError.notFound("Referral partner not found");
+
+    return Commission.findAll({
+      where: { referralPartnerId: id },
+      include: [{ model: Student, as: "student", attributes: ["id", "fullName", "serviceType"] }],
+      order: [["createdAt", "DESC"]],
+    });
+  },
+
+  /**
+   * V3 NEW: Marks a single commission as paid (or reverts it back to pending).
+   * This was a genuine gap in V2 - commissions were created as "pending" on verification
+   * but nothing anywhere could ever move them to "paid", so the Commission Paid figures on
+   * the Dashboard and Partner Profile were permanently stuck at ₹0.
+   */
+  updateCommissionStatus: async (commissionId: string, status: "pending" | "paid") => {
+    const commission = await Commission.findByPk(commissionId);
+    if (!commission) throw ApiError.notFound("Commission record not found");
+
+    await commission.update({ status, paidAt: status === "paid" ? new Date() : null });
+    return commission;
+  },
+
   /** V2 NEW: Super Admin sets what a partner PAYS (their buying cost) for each service type. */
   updatePricing: async (id: string, prepaidCost: number, postpaidCost: number): Promise<User> => {
     const partner = await User.findOne({ where: { id, role: "referral_admin" } });
@@ -166,88 +194,42 @@ export const partnerService = {
   },
 
   /** Deletes a referral partner and cascade deletes ALL associated data - Super Admin only. */
+  /**
+   * Deletes a Referral Partner account.
+   *
+   * BUSINESS RULE: student records must be preserved PERMANENTLY (per project spec - they
+   * become a future marketing database, e.g. converting old students into new referral
+   * partners later). A partner who has ever added students can therefore NEVER be deleted -
+   * only blocked (see updateStatus). This also matches the `onDelete: RESTRICT` foreign key
+   * already defined on students.referral_partner_id at the database level.
+   *
+   * Deletion is only permitted for partners with zero students on record (e.g. a duplicate
+   * or mistakenly-created account that was never actually used).
+   */
   delete: async (id: string): Promise<User> => {
     const partner = await User.findOne({ where: { id, role: "referral_admin" } });
     if (!partner) throw ApiError.notFound("Referral partner not found");
+
+    const studentCount = await Student.count({ where: { referralPartnerId: id } });
+    if (studentCount > 0) {
+      throw ApiError.badRequest(
+        `This partner has ${studentCount} student record${studentCount === 1 ? "" : "s"} on file. ` +
+          "Student data must be preserved permanently and cannot be deleted. " +
+          "Block this partner instead if you want to prevent further access."
+      );
+    }
 
     const partnerEmail = partner.email;
     const partnerPhotoUrl = partner.photoUrl;
 
     await sequelize.transaction(async (t) => {
-      // 1. Get all students created by this referral partner
-      const students = await Student.findAll({
-        where: { referralPartnerId: id },
-        attributes: ["id"],
-        transaction: t,
-      });
-      const studentIds = students.map((s) => s.id);
-
-      // Collect document file names for cleanup
-      const docFileNames: string[] = [];
-      if (studentIds.length > 0) {
-        const docs = await StudentDocument.findAll({
-          where: {
-            [Op.or]: [{ studentId: { [Op.in]: studentIds } }, { uploadedBy: id }],
-          },
-          attributes: ["fileName"],
-          transaction: t,
-        });
-        docs.forEach((d) => {
-          if (d.fileName) docFileNames.push(d.fileName);
-        });
-
-        // Delete Student Documents
-        await StudentDocument.destroy({
-          where: {
-            [Op.or]: [{ studentId: { [Op.in]: studentIds } }, { uploadedBy: id }],
-          },
-          transaction: t,
-        });
-
-        // Delete Student Payments
-        await Payment.destroy({
-          where: { studentId: { [Op.in]: studentIds } },
-          transaction: t,
-        });
-
-        // Delete Student Timeline Entries
-        await StudentTimeline.destroy({
-          where: {
-            [Op.or]: [{ studentId: { [Op.in]: studentIds } }, { createdBy: id }],
-          },
-          transaction: t,
-        });
-
-        // Delete Commissions
-        await Commission.destroy({
-          where: {
-            [Op.or]: [{ studentId: { [Op.in]: studentIds } }, { referralPartnerId: id }],
-          },
-          transaction: t,
-        });
-
-        // Delete Students
-        await Student.destroy({
-          where: { referralPartnerId: id },
-          transaction: t,
-        });
-      }
-
-      // Cleanup any remaining orphan records where partner was actor/owner
-      await StudentDocument.destroy({ where: { uploadedBy: id }, transaction: t });
-      await StudentTimeline.destroy({ where: { createdBy: id }, transaction: t });
-      await Commission.destroy({ where: { referralPartnerId: id }, transaction: t });
+      // No students exist for this partner, so there is nothing to cascade at the student
+      // level - only the partner's own account-scoped records need cleaning up.
       await LoginLog.destroy({ where: { userId: id }, transaction: t });
       await ActivityLog.destroy({ where: { userId: id }, transaction: t });
       await Otp.destroy({ where: { email: partnerEmail }, transaction: t });
-
-      // Delete the partner User record
       await partner.destroy({ transaction: t });
 
-      // Clean up physical file storage after DB transaction completes successfully
-      docFileNames.forEach((fileName) => {
-        uploadService.deleteFile(fileName).catch(() => {});
-      });
       if (partnerPhotoUrl) {
         uploadService.deleteFile(partnerPhotoUrl).catch(() => {});
       }

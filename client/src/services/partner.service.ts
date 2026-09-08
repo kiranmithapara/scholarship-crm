@@ -1,6 +1,6 @@
 import api from "@/lib/axios";
 import type { ApiResponse } from "@/types/api.types";
-import type { PartnerListResult, PartnerProfile, ReferralPartner } from "@/types/partner.types";
+import type { PartnerListResult, PartnerProfile, ReferralPartner, CommissionItem } from "@/types/partner.types";
 
 export const partnerService = {
   list: async (params: { page: number; pageSize: number; search?: string; status?: string }): Promise<PartnerListResult> => {
@@ -31,5 +31,16 @@ export const partnerService = {
 
   delete: async (id: string): Promise<void> => {
     await api.delete(`/referral-partners/${id}`);
+  },
+
+  /** V3 NEW: this partner's commissions (one per verified student). */
+  getCommissions: async (id: string): Promise<CommissionItem[]> => {
+    const { data } = await api.get<ApiResponse<CommissionItem[]>>(`/referral-partners/${id}/commissions`);
+    return data.data;
+  },
+
+  /** V3 NEW: mark a commission paid/pending - fixes the previously-missing action. */
+  updateCommissionStatus: async (partnerId: string, commissionId: string, status: "pending" | "paid"): Promise<void> => {
+    await api.patch(`/referral-partners/${partnerId}/commissions/${commissionId}/status`, { status });
   },
 };

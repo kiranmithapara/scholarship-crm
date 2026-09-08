@@ -87,6 +87,11 @@ export const updatePaymentStatusSchema = z.object({
 // V2 NEW: Manually add a scholarship-progress timeline stage - the core of the new
 // 13-stage manual tracking workflow. No automation; Super Admin/Referral Partner picks
 // the stage explicitly and can attach an internal note.
+// V4 CHANGE: manual scholarship-progress tracking simplified from 13 stages down to the
+// 6 that are actually used day-to-day (radio-button single-select on the frontend).
+// The remaining stages (query handling, credited/pending/verified payment sub-states, case
+// completed) are no longer offered here - "payment_received" plus the existing "Mark
+// Commission as Paid" action now cover the tail end of the workflow.
 export const addTimelineStageSchema = z.object({
   params: z.object({ id: z.string().uuid("Invalid student id") }),
   body: z.object({
@@ -95,18 +100,17 @@ export const addTimelineStageSchema = z.object({
       "application_locked_by_student",
       "documents_submitted",
       "help_center_verification_completed",
-      "commissioner_verification",
-      "query_raised",
-      "query_resolved",
       "scholarship_approved",
-      "scholarship_amount_credited",
-      "payment_pending",
       "payment_received",
-      "payment_verified",
-      "case_completed",
-      "correction_requested",
-      "receipt_uploaded",
     ]),
     note: z.string().trim().max(1000).optional(),
+  }),
+});
+
+// V3 NEW: toggle commission status - used on Student Details page (Super Admin only)
+export const updateCommissionStatusSchema = z.object({
+  params: z.object({ id: z.string().uuid("Invalid student id") }),
+  body: z.object({
+    status: z.enum(["pending", "paid"]),
   }),
 });

@@ -109,4 +109,15 @@ export const studentController = {
     const payment = await studentService.updatePaymentStatus(req.params.paymentId as string, req.body.status);
     ApiResponse.ok(res, payment, "Payment status updated successfully");
   }),
+
+  updateCommissionStatus: asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) throw ApiError.unauthorized();
+    const commission = await studentService.updateCommissionStatus(req.params.id as string, req.body.status);
+    await activityLogService.logActivity(req, {
+      userId: req.user.id,
+      action: req.body.status === "paid" ? "COMMISSION_MARKED_PAID" : "COMMISSION_MARKED_PENDING",
+      details: { studentId: req.params.id },
+    });
+    ApiResponse.ok(res, commission, "Commission status updated successfully");
+  }),
 };

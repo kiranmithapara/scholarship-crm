@@ -52,3 +52,14 @@ export const createPartnerSchema = z.object({
     password: z.string().min(6, "Password must be at least 6 characters"),
   }),
 });
+
+// V3 NEW: mark a commission paid/pending - the fix for the previously-missing action.
+export const updateCommissionStatusSchema = z.object({
+  params: z.object({
+    id: z.string().uuid("Invalid partner id"),
+    commissionId: z.string().uuid("Invalid commission id"),
+  }),
+  body: z.object({
+    status: z.enum(["pending", "paid"]),
+  }),
+});

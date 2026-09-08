@@ -154,13 +154,23 @@ export const studentService = {
       throw ApiError.badRequest("This application has already been verified");
     }
 
+    // `amount` = the Referral Partner's profit (sellingPrice - buyingPrice, already computed).
+    // `adminAmount` = the Super Admin's own earning = the partner's buyingPrice for this
+    // application (what the partner owes the admin for the Hostel Receipt).
     const commissionAmount = Number(student.partnerProfit ?? 0);
+    const adminCommissionAmount = Number(student.buyingPrice ?? 0);
 
     await student.update({ status: "verified", correctionNote: null });
     await StudentTimeline.create({ studentId: id, event: "help_center_verification_completed", createdBy: verifiedBy });
     await Commission.findOrCreate({
       where: { studentId: id },
-      defaults: { referralPartnerId: student.referralPartnerId, studentId: id, amount: commissionAmount, status: "pending" },
+      defaults: {
+        referralPartnerId: student.referralPartnerId,
+        studentId: id,
+        amount: commissionAmount,
+        adminAmount: adminCommissionAmount,
+        status: "pending",
+      },
     });
 
     return student;
@@ -205,6 +215,24 @@ export const studentService = {
     studentService.assertAccess(student, requester);
 
     return StudentTimeline.create({ studentId: id, event, note: note ?? null, createdBy: requester.id });
+  },
+
+  /**
+   * V2 NEW: Toggles a student's commission between "pending" and "paid" - Super Admin only
+   * (enforced at the route level). Both the partner's `amount` and the admin's own
+   * `adminAmount` live on the same Commission row, so a single status update moves both
+   * the partner's "My Commission" figures (Partner Profile) and the Super Admin's own
+   * "Commission" dashboard cards together - never out of sync.
+   */
+  updateCommissionStatus: async (id: string, status: "pending" | "paid"): Promise<Commission> => {
+    const student = await Student.findByPk(id);
+    if (!student) throw ApiError.notFound("Student not found");
+
+    const commission = await Commission.findOne({ where: { studentId: id } });
+    if (!commission) throw ApiError.badRequest("Commission has not been generated yet - verify the application first");
+
+    await commission.update({ status, paidAt: status === "paid" ? new Date() : null });
+    return commission;
   },
 
   /**

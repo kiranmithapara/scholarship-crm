@@ -23,6 +23,11 @@ export type TimelineEvent =
   | "correction_requested"
   | "receipt_uploaded";
 
+// V2 NEW: The Scholarship Progress tab's manual "Add Progress Stage" picker was narrowed to
+// just these 4 checkpoints (radio buttons). TimelineEvent above stays the full 15-value set
+// since the Timeline tab still shows every stage (including ones written automatically).
+export type ProgressStage = "application_filled" | "help_center_verification_completed" | "scholarship_approved" | "payment_received";
+
 export interface StudentListItem {
   id: string;
   fullName: string;

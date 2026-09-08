@@ -105,6 +105,29 @@ export const partnerController = {
       details: { partnerId: id, partnerEmail: partner.email, partnerName: partner.fullName },
     });
 
-    ApiResponse.ok(res, null, "Referral partner and all associated data deleted successfully");
+    ApiResponse.ok(res, null, "Referral partner deleted successfully");
+  }),
+
+  /** V3 NEW: lists this partner's commissions (one per verified student) with student names attached. */
+  getCommissions: asyncHandler(async (req: Request, res: Response) => {
+    const commissions = await partnerService.getCommissions(req.params.id as string);
+    ApiResponse.ok(res, commissions, "Commissions fetched successfully");
+  }),
+
+  /** V3 NEW: marks a commission paid/pending - fixes the previously-missing "mark as paid" action. */
+  updateCommissionStatus: asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) throw ApiError.unauthorized();
+    const { commissionId } = req.params;
+    const { status } = req.body;
+
+    const commission = await partnerService.updateCommissionStatus(commissionId as string, status);
+
+    await activityLogService.logActivity(req, {
+      userId: req.user.id,
+      action: status === "paid" ? "COMMISSION_MARKED_PAID" : "COMMISSION_MARKED_PENDING",
+      details: { commissionId, partnerId: req.params.id, studentId: commission.studentId, amount: commission.amount },
+    });
+
+    ApiResponse.ok(res, commission, `Commission marked as ${status} successfully`);
   }),
 };

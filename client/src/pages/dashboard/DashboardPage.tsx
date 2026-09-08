@@ -1,4 +1,4 @@
-import { Users, GraduationCap, Wallet, Clock, CheckCircle2, Wallet2, FileText, UserCircle } from "lucide-react";
+import { Users, GraduationCap, Wallet, Clock, CheckCircle2, Wallet2, FileText, UserCircle, IndianRupee } from "lucide-react";
 import { motion } from "framer-motion";
 import { StatCard } from "@/components/common/StatCard";
 import { MonthlyTrendChart } from "@/components/charts/MonthlyTrendChart";
@@ -54,6 +54,13 @@ export default function DashboardPage() {
         <StatCard label="Completed" value={cards?.completedCount ?? 0} icon={CheckCircle2} isLoading={isLoading} tone="success" />
         <StatCard label="Commission (Pending)" value={cards?.commission.pending ?? 0} icon={Wallet} isLoading={isLoading} tone="warning" prefix="₹" />
         <StatCard label="Commission (Paid)" value={cards?.commission.paid ?? 0} icon={Wallet2} isLoading={isLoading} tone="success" prefix="₹" />
+        {/* V4 NEW: Super Admin's own earning (buying price) - what YOU keep, separate from what the partner earns above */}
+        {isSuperAdmin && (
+          <>
+            <StatCard label="My Revenue (Pending)" value={cards?.adminRevenue.pending ?? 0} icon={IndianRupee} isLoading={isLoading} tone="warning" prefix="₹" />
+            <StatCard label="My Revenue (Received)" value={cards?.adminRevenue.paid ?? 0} icon={IndianRupee} isLoading={isLoading} tone="success" prefix="₹" />
+          </>
+        )}
       </div>
 
       {/* Charts */}

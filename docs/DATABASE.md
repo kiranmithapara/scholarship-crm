@@ -111,13 +111,14 @@ Powers the **Scholarship Progress** and **Timeline** tabs. **V2:** expanded from
 | created_by | UUID (FK → users) | who logged the stage |
 
 ### `commissions`
-What a Referral Admin earns per completed application. One row per student (unique constraint on `student_id`) to avoid double-counting. **V2:** `amount` is set from `students.partner_profit` (selling − buying) at verification time, not a flat formula.
+What a Referral Admin earns per completed application. One row per student (unique constraint on `student_id`) to avoid double-counting. **V2:** `amount` is set from `students.partner_profit` (selling − buying) at verification time, not a flat formula. **V3:** `admin_amount` added alongside it — the Super Admin's own earning (= `students.buying_price` at verification time). `status`/`paid_at` are shared by both figures, toggled together via the "Mark Commission Paid" button on Student Details.
 
 | Column | Type | Notes |
 |---|---|---|
 | referral_partner_id | UUID (FK → users) | |
 | student_id | UUID (FK → students, unique) | |
-| amount | DECIMAL(10,2) | |
+| amount | DECIMAL(10,2) | Referral Partner's profit (sellingPrice − buyingPrice) |
+| admin_amount | DECIMAL(10,2) | V3 NEW — Super Admin's own earning (= buyingPrice) |
 | status | ENUM | `pending`, `paid` |
 
 ### `login_logs`

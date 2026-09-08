@@ -108,14 +108,15 @@ Every route requires login; **ownership is enforced in the service layer** — a
 | POST | `/` | Any | Create application. Body includes `serviceType` (`prepaid`\|`postpaid`) and `sellingPrice`; `buyingPrice`/`partnerProfit` are computed server-side from the partner's pricing. |
 | GET | `/:id` | Owner or Super Admin | Full details incl. documents, payments, timeline, commission, financials |
 | PATCH | `/:id` | Owner or Super Admin | Edit (Referral Admin only while `status=pending`); `sellingPrice` changes auto-recompute `partnerProfit` |
-| POST | `/:id/verify` | Super Admin | Marks verified, creates commission record using `partnerProfit` |
+| POST | `/:id/verify` | Super Admin | Marks verified, creates commission record using `partnerProfit` (partner's `amount`) and `buyingPrice` (Super Admin's own `adminAmount`) |
 | POST | `/:id/request-correction` | Super Admin | Body `{ note }` — sends application back |
 | POST | `/:id/complete` | Super Admin | Marks completed (must be `verified` first) |
-| POST | `/:id/timeline-stage` | Owner or Super Admin | **V2 NEW** — body `{ event, note? }`. Manually logs one of the 13 scholarship-progress stages (see CHANGELOG.md). Replaces the removed `/scholarship` (MYSY) endpoint. |
+| POST | `/:id/timeline-stage` | Owner or Super Admin | **V2 NEW, narrowed in V3** — body `{ event, note? }`. Manually logs one of 4 scholarship-progress checkpoints: `application_filled`, `help_center_verification_completed`, `scholarship_approved`, `payment_received` (see CHANGELOG.md). Replaces the removed `/scholarship` (MYSY) endpoint. |
 | GET | `/:id/activity-logs` | Owner or Super Admin | **V2 NEW** — system audit trail scoped to this student, powers the Activity Logs tab |
 | POST | `/:id/documents` | Owner or Super Admin | `multipart/form-data`: `file` + `type` (`aadhaar`\|`hostel_receipt`\|`twelfth_marksheet`). **V2:** `hostel_receipt` returns `403 Forbidden` if uploaded by a `referral_admin` — Super Admin only. |
 | POST | `/:id/payments` | Any | Create a payment record |
 | PATCH | `/:id/payments/:paymentId/status` | Super Admin | Update payment status |
+| PATCH | `/:id/commission/status` | Super Admin | **V3 NEW** — body `{ status: "pending" \| "paid" }`. Toggles this student's commission; moves it between the Pending/Paid totals on both the Super Admin Dashboard and the Referral Partner's Profile page. |
 
 ---
 

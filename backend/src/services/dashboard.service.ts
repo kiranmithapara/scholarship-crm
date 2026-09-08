@@ -1,5 +1,6 @@
 import { Op, fn, col, literal } from "sequelize";
 import { Student, User, Commission } from "@/models";
+import { sequelize } from "@/config/database.config";
 
 /** Returns the last N months as { year, month, label } - used to build zero-filled chart series. */
 function getLastNMonths(n: number): { year: number; month: number; label: string }[] {
@@ -91,6 +92,32 @@ export const dashboardService = {
       }),
     ]);
 
+    /**
+     * V4 NEW: "Admin Revenue" - what the Super Admin personally keeps per application
+     * (student.buying_price, the amount the partner pays IN, as opposed to commission.amount
+     * which is the partner's own profit paid OUT). Example: a ₹2000 receipt where the partner's
+     * buying cost is ₹1500 means the partner earns ₹500 commission, and the admin keeps ₹1500 -
+     * these two figures always sum to the student's selling_price.
+     *
+     * Reuses the SAME commission.status flag ("pending"/"paid") as the partner commission -
+     * in this business, the partner pays the admin the buying price and the admin pays the
+     * partner their profit at the same reconciliation moment, so one "Mark as Paid" action
+     * settles both sides of the ledger simultaneously.
+     */
+    const revenueRow = isSuperAdmin
+      ? await (async () => {
+          const [rows] = await sequelize.query<{ pending: string; paid: string }>(
+            `SELECT
+               COALESCE(SUM(CASE WHEN c.status = 'pending' THEN s.buying_price ELSE 0 END), 0) AS pending,
+               COALESCE(SUM(CASE WHEN c.status = 'paid' THEN s.buying_price ELSE 0 END), 0) AS paid
+             FROM commissions c
+             JOIN students s ON s.id = c.student_id;`,
+            { type: "SELECT" as never }
+          );
+          return (Array.isArray(rows) ? rows[0] : rows) as unknown as { pending: string; paid: string } | undefined;
+        })()
+      : undefined;
+
     // Zero-fill months that had no activity, so the chart never has gaps
     const months = getLastNMonths(6);
     const fillSeries = (raw: Array<{ month: string | Date; count: string | number }>) =>
@@ -120,6 +147,12 @@ export const dashboardService = {
           total: Number(commissionRow.total),
           pending: Number(commissionRow.pending),
           paid: Number(commissionRow.paid),
+        },
+        // V4 NEW: only populated for Super Admin - the amount THEY personally keep (buying price),
+        // as distinct from the `commission` figures above which are what partners earn.
+        adminRevenue: {
+          pending: Number(revenueRow?.pending ?? 0),
+          paid: Number(revenueRow?.paid ?? 0),
         },
       },
       charts: {
