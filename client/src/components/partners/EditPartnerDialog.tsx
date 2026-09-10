@@ -78,8 +78,8 @@ export function EditPartnerDialog({ partner, open, onOpenChange, onSuccess }: Ed
         mobile: partner.mobile || "",
         username: partner.username || "",
         password: "",
-        prepaidCost: partner.prepaidCost ? String(partner.prepaidCost) : "",
-        postpaidCost: partner.postpaidCost ? String(partner.postpaidCost) : "",
+        prepaidCost: partner.prepaidCost ? String(partner.prepaidCost) : "1500",
+        postpaidCost: partner.postpaidCost ? String(partner.postpaidCost) : "4500",
       });
       setSelectedFile(null);
       setPreviewUrl(partner.photoUrl ?? null);

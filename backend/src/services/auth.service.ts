@@ -56,6 +56,8 @@ export const authService = {
       role: "referral_admin",
       isActive: true,
       isEmailVerified: false,
+      prepaidCost: "1500.00",
+      postpaidCost: "4500.00",
     });
 
     const otp = generateOtp();

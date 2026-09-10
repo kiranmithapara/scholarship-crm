@@ -18,6 +18,8 @@ export interface CreatePartnerInput {
   username: string;
   password: string;
   photoUrl?: string | null;
+  prepaidCost?: number | string | null;
+  postpaidCost?: number | string | null;
 }
 
 export const partnerService = {
@@ -44,6 +46,8 @@ export const partnerService = {
       isActive: true,
       isEmailVerified: true,
       photoUrl: input.photoUrl ?? null,
+      prepaidCost: input.prepaidCost != null && input.prepaidCost !== "" ? Number(input.prepaidCost).toFixed(2) : "1500.00",
+      postpaidCost: input.postpaidCost != null && input.postpaidCost !== "" ? Number(input.postpaidCost).toFixed(2) : "4500.00",
     });
 
     return partner;
@@ -144,8 +148,12 @@ export const partnerService = {
 
     const commissionRow = (commissionTotals[0] ?? { pending: 0, paid: 0 }) as unknown as { pending: string; paid: string };
 
+    const partnerSafe = partner.toSafeJSON();
+    partnerSafe.prepaidCost = partnerSafe.prepaidCost ?? "1500.00";
+    partnerSafe.postpaidCost = partnerSafe.postpaidCost ?? "4500.00";
+
     return {
-      partner: partner.toSafeJSON(),
+      partner: partnerSafe,
       stats: {
         prepaidCount,
         postpaidCount,

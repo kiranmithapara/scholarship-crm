@@ -71,6 +71,14 @@ export const createPartnerSchema = z.object({
     mobile: z.string().trim().regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit mobile number"),
     username: z.string().trim().min(3, "Username must be at least 3 characters").max(50),
     password: z.string().min(6, "Password must be at least 6 characters"),
+    prepaidCost: z
+      .union([z.coerce.number().nonnegative(), z.literal("")])
+      .optional()
+      .transform((val) => (val === "" ? undefined : val)),
+    postpaidCost: z
+      .union([z.coerce.number().nonnegative(), z.literal("")])
+      .optional()
+      .transform((val) => (val === "" ? undefined : val)),
   }),
 });
 

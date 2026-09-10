@@ -31,6 +31,8 @@ const createPartnerSchema = z.object({
     .min(3, "Username must be at least 3 characters")
     .regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers and underscores"),
   password: z.string().min(6, "Password must be at least 6 characters"),
+  prepaidCost: z.string().optional(),
+  postpaidCost: z.string().optional(),
 });
 
 type CreatePartnerFormValues = z.infer<typeof createPartnerSchema>;
@@ -55,6 +57,8 @@ export function CreatePartnerDialog({ open, onOpenChange, onSuccess }: CreatePar
       mobile: "",
       username: "",
       password: "",
+      prepaidCost: "1500",
+      postpaidCost: "4500",
     },
   });
 
@@ -72,7 +76,15 @@ export function CreatePartnerDialog({ open, onOpenChange, onSuccess }: CreatePar
   };
 
   const handleClose = () => {
-    form.reset();
+    form.reset({
+      fullName: "",
+      email: "",
+      mobile: "",
+      username: "",
+      password: "",
+      prepaidCost: "1500",
+      postpaidCost: "4500",
+    });
     setSelectedFile(null);
     setPreviewUrl(null);
     setShowPassword(false);
@@ -87,6 +99,12 @@ export function CreatePartnerDialog({ open, onOpenChange, onSuccess }: CreatePar
       formData.append("mobile", values.mobile);
       formData.append("username", values.username);
       formData.append("password", values.password);
+      if (values.prepaidCost) {
+        formData.append("prepaidCost", values.prepaidCost);
+      }
+      if (values.postpaidCost) {
+        formData.append("postpaidCost", values.postpaidCost);
+      }
       if (selectedFile) {
         formData.append("file", selectedFile);
       }
@@ -111,7 +129,7 @@ export function CreatePartnerDialog({ open, onOpenChange, onSuccess }: CreatePar
             <UserPlus className="h-5 w-5 text-primary" /> Add Referral Partner
           </DialogTitle>
           <DialogDescription>
-            Create a new partner account. They will use these login credentials to access their portal and add students.
+            Create a new partner account. Default pricing is ₹1500 for Prepaid and ₹4500 for Postpaid.
           </DialogDescription>
         </DialogHeader>
 
@@ -194,6 +212,25 @@ export function CreatePartnerDialog({ open, onOpenChange, onSuccess }: CreatePar
             }
             {...form.register("password")}
           />
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormInput
+              label="Prepaid Cost (₹)"
+              type="number"
+              step="any"
+              placeholder="1500"
+              error={form.formState.errors.prepaidCost?.message}
+              {...form.register("prepaidCost")}
+            />
+            <FormInput
+              label="Postpaid Cost (₹)"
+              type="number"
+              step="any"
+              placeholder="4500"
+              error={form.formState.errors.postpaidCost?.message}
+              {...form.register("postpaidCost")}
+            />
+          </div>
 
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button" variant="outline" onClick={handleClose}>

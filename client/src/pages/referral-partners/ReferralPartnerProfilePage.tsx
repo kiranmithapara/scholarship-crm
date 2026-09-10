@@ -92,8 +92,8 @@ export default function ReferralPartnerProfilePage() {
 
   useEffect(() => {
     if (!data) return;
-    setPrepaidCost(data.partner.prepaidCost ?? "");
-    setPostpaidCost(data.partner.postpaidCost ?? "");
+    setPrepaidCost(data.partner.prepaidCost ? String(data.partner.prepaidCost) : "1500");
+    setPostpaidCost(data.partner.postpaidCost ? String(data.partner.postpaidCost) : "4500");
   }, [data]);
 
   useEffect(fetchCommissions, [id]);
@@ -364,14 +364,14 @@ export default function ReferralPartnerProfilePage() {
               type="number"
               value={prepaidCost}
               onChange={(e) => setPrepaidCost(e.target.value)}
-              placeholder="e.g. 2000"
+              placeholder="1500"
             />
             <FormInput
               label="Postpaid Service Cost (₹)"
               type="number"
               value={postpaidCost}
               onChange={(e) => setPostpaidCost(e.target.value)}
-              placeholder="e.g. 4000"
+              placeholder="4500"
             />
           </div>
           <Button variant="gradient" size="sm" className="mt-4 w-full sm:w-auto" onClick={handleSavePricing} isLoading={isSavingPricing}>

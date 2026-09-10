@@ -47,12 +47,10 @@ export const studentService = {
     const partner = await User.findByPk(referralPartnerId);
     if (!partner) throw ApiError.notFound("Referral partner not found");
 
-    const buyingPrice = input.serviceType === "prepaid" ? partner.prepaidCost : partner.postpaidCost;
-    if (buyingPrice === null || buyingPrice === undefined) {
-      throw ApiError.badRequest(
-        `Super Admin has not set a ${input.serviceType} price for this partner yet. Please contact your administrator.`
-      );
-    }
+    const rawBuyingPrice = input.serviceType === "prepaid" ? partner.prepaidCost : partner.postpaidCost;
+    const buyingPrice = rawBuyingPrice != null && rawBuyingPrice !== ""
+      ? rawBuyingPrice
+      : (input.serviceType === "prepaid" ? "1500.00" : "4500.00");
 
     const hasSellingPrice = input.sellingPrice != null && !Number.isNaN(Number(input.sellingPrice));
     const partnerProfit = hasSellingPrice ? Number(input.sellingPrice) - Number(buyingPrice) : null;
