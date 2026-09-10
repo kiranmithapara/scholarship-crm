@@ -180,7 +180,7 @@ export function EditPartnerDialog({ partner, open, onOpenChange, onSuccess }: Ed
                 className="hidden"
               />
             </div>
-            <p className="text-xs text-muted-foreground">Change Profile Photo</p>
+            <p className="text-xs text-muted-foreground">Change Profile Photo (Optional)</p>
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -217,7 +217,7 @@ export function EditPartnerDialog({ partner, open, onOpenChange, onSuccess }: Ed
           </div>
 
           <FormInput
-            label="New Password"
+            label="New Password (Optional)"
             type={showPassword ? "text" : "password"}
             placeholder="Leave blank to keep existing password"
             error={form.formState.errors.password?.message}
