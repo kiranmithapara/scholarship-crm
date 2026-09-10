@@ -19,6 +19,7 @@ interface ListParams {
   search?: string;
   serviceType?: string;
   status?: string;
+  referralPartnerId?: string;
 }
 
 export const studentService = {

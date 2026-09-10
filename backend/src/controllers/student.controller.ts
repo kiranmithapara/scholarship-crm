@@ -19,14 +19,15 @@ export const studentController = {
 
   list: asyncHandler(async (req: Request, res: Response) => {
     if (!req.user) throw ApiError.unauthorized();
-    const { page, pageSize, search, serviceType, status } = req.query as unknown as {
+    const { page, pageSize, search, serviceType, status, referralPartnerId: queryPartnerId } = req.query as unknown as {
       page: number;
       pageSize: number;
       search?: string;
       serviceType: "prepaid" | "postpaid" | "all";
       status: "pending" | "completed" | "all";
+      referralPartnerId?: string;
     };
-    const referralPartnerId = req.user.role === "referral_admin" ? req.user.id : undefined;
+    const referralPartnerId = req.user.role === "referral_admin" ? req.user.id : queryPartnerId;
     const result = await studentService.list({ page, pageSize, search, serviceType, status, referralPartnerId });
     ApiResponse.ok(res, result, "Students fetched successfully");
   }),

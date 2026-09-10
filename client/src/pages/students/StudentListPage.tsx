@@ -1,5 +1,6 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Search, Eye, GraduationCap, Wallet, Clock, CheckCircle2 } from "lucide-react";
+import { Search, Eye, GraduationCap, Wallet, Clock, CheckCircle2, Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
@@ -11,11 +12,37 @@ import { Pagination } from "@/components/common/Pagination";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { QuickActions } from "@/components/common/QuickActions";
 import { useStudents } from "@/hooks/useStudents";
+import { partnerService } from "@/services/partner.service";
 import { ROUTES, buildPath } from "@/constants/routes.constant";
 
-/** StudentListPage - Page 6. All students (Super Admin) with search, service-type/status filters, summary cards. */
+/** StudentListPage - Page 6. All students (Super Admin) with search, partner/service-type/status filters, summary cards. */
 export default function StudentListPage() {
-  const { data, isLoading, error, setPage, search, setSearch, serviceType, setServiceType, status, setStatus, refetch } = useStudents();
+  const {
+    data,
+    isLoading,
+    error,
+    setPage,
+    search,
+    setSearch,
+    serviceType,
+    setServiceType,
+    status,
+    setStatus,
+    referralPartnerId,
+    setReferralPartnerId,
+    refetch,
+  } = useStudents();
+
+  const [partners, setPartners] = useState<{ id: string; fullName: string }[]>([]);
+
+  useEffect(() => {
+    partnerService
+      .list({ page: 1, pageSize: 100, status: "all" })
+      .then((res) => {
+        setPartners(res.items.map((p) => ({ id: p.id, fullName: p.fullName })));
+      })
+      .catch(() => setPartners([]));
+  }, []);
 
   if (error) {
     return (
@@ -91,6 +118,23 @@ export default function StudentListPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input placeholder="Search by name, mobile or college..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
+
+        {/* Partner Filter */}
+        <Select value={referralPartnerId} onValueChange={setReferralPartnerId}>
+          <SelectTrigger className="w-full sm:w-48">
+            <Users className="mr-1.5 h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <SelectValue placeholder="All Referral Partners" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Referral Partners</SelectItem>
+            {partners.map((partner) => (
+              <SelectItem key={partner.id} value={partner.id}>
+                {partner.fullName}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         <Select value={serviceType} onValueChange={(v) => setServiceType(v as typeof serviceType)}>
           <SelectTrigger className="w-full sm:w-40">
             <SelectValue placeholder="Service Type" />
@@ -101,6 +145,7 @@ export default function StudentListPage() {
             <SelectItem value="postpaid">Postpaid</SelectItem>
           </SelectContent>
         </Select>
+
         <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
           <SelectTrigger className="w-full sm:w-44">
             <SelectValue placeholder="Status" />

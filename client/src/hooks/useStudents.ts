@@ -12,6 +12,7 @@ export function useStudents() {
   // V2 UPGRADE: "plan" ('2500'/'5000') -> "serviceType" ('prepaid'/'postpaid')
   const [serviceType, setServiceType] = useState<"prepaid" | "postpaid" | "all">("all");
   const [status, setStatus] = useState<"pending" | "verified" | "completed" | "correction_requested" | "all">("all");
+  const [referralPartnerId, setReferralPartnerId] = useState<string>("all");
   const [data, setData] = useState<StudentListResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -22,14 +23,21 @@ export function useStudents() {
     setIsLoading(true);
     setError(null);
     try {
-      const result = await studentService.list({ page, pageSize: 10, search: debouncedSearch || undefined, serviceType, status });
+      const result = await studentService.list({
+        page,
+        pageSize: 10,
+        search: debouncedSearch || undefined,
+        serviceType,
+        status,
+        referralPartnerId: referralPartnerId !== "all" ? referralPartnerId : undefined,
+      });
       setData(result);
     } catch (err) {
       setError(err instanceof Error ? err : new Error("Failed to load students"));
     } finally {
       setIsLoading(false);
     }
-  }, [page, debouncedSearch, serviceType, status]);
+  }, [page, debouncedSearch, serviceType, status, referralPartnerId]);
 
   useEffect(() => {
     fetchStudents();
@@ -37,7 +45,22 @@ export function useStudents() {
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, serviceType, status]);
+  }, [debouncedSearch, serviceType, status, referralPartnerId]);
 
-  return { data, isLoading, error, page, setPage, search, setSearch, serviceType, setServiceType, status, setStatus, refetch: fetchStudents };
+  return {
+    data,
+    isLoading,
+    error,
+    page,
+    setPage,
+    search,
+    setSearch,
+    serviceType,
+    setServiceType,
+    status,
+    setStatus,
+    referralPartnerId,
+    setReferralPartnerId,
+    refetch: fetchStudents,
+  };
 }

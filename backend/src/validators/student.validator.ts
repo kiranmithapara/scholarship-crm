@@ -22,6 +22,7 @@ export const listStudentsSchema = z.object({
     search: z.string().trim().optional(),
     serviceType: z.enum(["prepaid", "postpaid", "all"]).optional().default("all"),
     status: z.enum(["pending", "completed", "all"]).optional().default("all"),
+    referralPartnerId: z.string().optional(),
   }),
 });
 
