@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { toast } from "sonner";
 import { isAxiosError } from "axios";
 import {
@@ -44,14 +44,11 @@ import type { CreateStudentInput } from "@/types/student.types";
 
 export default function ReferralPartnerProfilePage() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const { data, isLoading, error, refetch } = usePartnerProfile(id);
 
   const [prepaidCost, setPrepaidCost] = useState("");
   const [postpaidCost, setPostpaidCost] = useState("");
   const [isSavingPricing, setIsSavingPricing] = useState(false);
-  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [isMarkingAll, setIsMarkingAll] = useState(false);
   const [isEditPartnerOpen, setIsEditPartnerOpen] = useState(false);
 
@@ -141,20 +138,6 @@ export default function ReferralPartnerProfilePage() {
       toast.error("Could not update pricing");
     } finally {
       setIsSavingPricing(false);
-    }
-  };
-
-  const handleDeletePartner = async () => {
-    if (!id) return;
-    setIsDeleting(true);
-    try {
-      await partnerService.delete(id);
-      toast.success("Referral partner deleted successfully");
-      navigate(ROUTES.REFERRAL_PARTNERS);
-    } catch (err) {
-      const message = isAxiosError(err) ? err.response?.data?.message : null;
-      toast.error(message ?? "Could not delete referral partner");
-      setIsDeleting(false);
     }
   };
 
@@ -318,14 +301,6 @@ export default function ReferralPartnerProfilePage() {
             </Button>
             <Button variant="gradient" size="sm" onClick={() => setShowAddStudent(true)}>
               <Plus className="mr-1.5 h-3.5 w-3.5" /> Add Student
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => setIsConfirmDeleteOpen(true)}
-              title="Delete partner"
-            >
-              <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete Partner
             </Button>
           </div>
         </CardContent>
@@ -594,22 +569,6 @@ export default function ReferralPartnerProfilePage() {
           )}
         </CardContent>
       </Card>
-
-      {/* Delete confirmation */}
-      <ConfirmDialog
-        open={isConfirmDeleteOpen}
-        onOpenChange={setIsConfirmDeleteOpen}
-        title={`Delete ${partner.fullName}?`}
-        description={
-          students.length > 0
-            ? `${partner.fullName} has ${students.length} student record(s). Student data is preserved permanently and cannot be deleted - block this partner instead to prevent further access.`
-            : `This will permanently delete ${partner.fullName}'s account. This partner has no students on record, so this action is safe and cannot be undone.`
-        }
-        confirmLabel="Delete Partner"
-        variant="destructive"
-        isLoading={isDeleting}
-        onConfirm={handleDeletePartner}
-      />
 
       {/* Add Student Modal */}
       {showAddStudent && (

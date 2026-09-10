@@ -1,23 +1,8 @@
 import { Op, fn, col, literal } from "sequelize";
-import {
-  User,
-  Student,
-  Commission,
-  LoginLog,
-  ActivityLog,
-  Otp,
-  StudentTimeline,
-  PartnerNote,
-  StudentDocument,
-  Payment,
-  StudentNote,
-  AdminNote,
-} from "@/models";
-import { sequelize } from "@/config/database.config";
+import { User, Student, Commission, StudentTimeline, PartnerNote } from "@/models";
 import { ApiError } from "@/utils/apiError";
 import { hashPassword } from "@/helpers/password.helper";
 import { mailService } from "./mail.service";
-import { uploadService } from "./upload.service";
 
 interface ListPartnersParams {
   page: number;
@@ -320,63 +305,8 @@ export const partnerService = {
     return partner;
   },
 
-  delete: async (id: string): Promise<User> => {
-    const partner = await User.findOne({ where: { id, role: "referral_admin" } });
-    if (!partner) throw ApiError.notFound("Referral partner not found");
-
-    const partnerEmail = partner.email;
-    const partnerPhotoUrl = partner.photoUrl;
-
-    await sequelize.transaction(async (t) => {
-      // Find all students for this partner
-      const students = await Student.findAll({
-        where: { referralPartnerId: id },
-        attributes: ["id"],
-        transaction: t,
-      });
-      const studentIds = students.map((s) => s.id);
-
-      if (studentIds.length > 0) {
-        // Collect document file URLs for storage cleanup
-        const docs = await StudentDocument.findAll({
-          where: { studentId: { [Op.in]: studentIds } },
-          attributes: ["fileUrl"],
-          transaction: t,
-        });
-
-        // Delete documents, payments, timelines, internal notes, commissions, students
-        await StudentDocument.destroy({ where: { studentId: { [Op.in]: studentIds } }, transaction: t });
-        await Payment.destroy({ where: { studentId: { [Op.in]: studentIds } }, transaction: t });
-        await StudentTimeline.destroy({ where: { studentId: { [Op.in]: studentIds } }, transaction: t });
-        await StudentNote.destroy({ where: { studentId: { [Op.in]: studentIds } }, transaction: t });
-        await Commission.destroy({ where: { studentId: { [Op.in]: studentIds } }, transaction: t });
-        await Student.destroy({ where: { id: { [Op.in]: studentIds } }, transaction: t });
-
-        // Clean up Cloudinary document files asynchronously
-        docs.forEach((doc) => {
-          if (doc.fileUrl) uploadService.deleteFile(doc.fileUrl).catch(() => {});
-        });
-      }
-
-      // Clean up any remaining records authored by or associated with this partner
-      await Commission.destroy({ where: { referralPartnerId: id }, transaction: t });
-      await StudentTimeline.destroy({ where: { createdBy: id }, transaction: t });
-      await StudentDocument.destroy({ where: { uploadedBy: id }, transaction: t });
-      await StudentNote.destroy({ where: { createdBy: id }, transaction: t });
-      await LoginLog.destroy({ where: { userId: id }, transaction: t });
-      await ActivityLog.destroy({ where: { userId: id }, transaction: t });
-      await Otp.destroy({ where: { email: partnerEmail }, transaction: t });
-      await PartnerNote.destroy({ where: { partnerId: id }, transaction: t });
-      await PartnerNote.destroy({ where: { createdBy: id }, transaction: t });
-      await AdminNote.destroy({ where: { userId: id }, transaction: t });
-      await partner.destroy({ transaction: t });
-
-      if (partnerPhotoUrl) {
-        uploadService.deleteFile(partnerPhotoUrl).catch(() => {});
-      }
-    });
-
-    return partner;
+  delete: async (_id: string): Promise<User> => {
+    throw ApiError.badRequest("Partner deletion is disabled to prevent permanent data loss. You can Block this partner instead to deactivate their account.");
   },
 
   // ============================================================
