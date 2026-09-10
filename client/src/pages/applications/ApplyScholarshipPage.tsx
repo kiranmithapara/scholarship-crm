@@ -197,7 +197,7 @@ export default function ApplyScholarshipPage() {
               name="universityName"
               render={({ field }) => (
                 <SuggestionInput
-                  label="University Name (Optional)"
+                  label="University Name"
                   placeholder="Start typing university name..."
                   value={field.value ?? ""}
                   onValueChange={field.onChange}
@@ -213,7 +213,7 @@ export default function ApplyScholarshipPage() {
                 name="course"
                 render={({ field }) => (
                   <SuggestionInput
-                    label="Course (Optional)"
+                    label="Course"
                     placeholder="Start typing course..."
                     value={field.value ?? ""}
                     onValueChange={field.onChange}
@@ -228,7 +228,7 @@ export default function ApplyScholarshipPage() {
                 name="semester"
                 render={({ field }) => (
                   <SuggestionInput
-                    label="Semester (Optional)"
+                    label="Semester"
                     placeholder="Start typing semester..."
                     value={field.value ?? ""}
                     onValueChange={field.onChange}
@@ -273,7 +273,7 @@ export default function ApplyScholarshipPage() {
             )}
 
             <FormInput
-              label="Selling Price (₹) - Optional"
+              label="Selling Price (₹)"
               type="number"
               placeholder="Leave blank if not decided yet"
               error={errors.sellingPrice?.message as string | undefined}

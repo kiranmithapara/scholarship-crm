@@ -623,7 +623,7 @@ export default function ReferralPartnerProfilePage() {
                 />
 
                 <SuggestionInput
-                  label="University Name (Optional)"
+                  label="University Name"
                   placeholder="Start typing university name..."
                   value={studentForm.universityName}
                   onValueChange={(v) => setStudentForm({ ...studentForm, universityName: v })}
@@ -631,7 +631,7 @@ export default function ReferralPartnerProfilePage() {
                 />
 
                 <SuggestionInput
-                  label="Course (Optional)"
+                  label="Course"
                   placeholder="Start typing course..."
                   value={studentForm.course}
                   onValueChange={(v) => setStudentForm({ ...studentForm, course: v })}
@@ -639,7 +639,7 @@ export default function ReferralPartnerProfilePage() {
                 />
 
                 <SuggestionInput
-                  label="Semester (Optional)"
+                  label="Semester"
                   placeholder="Start typing semester..."
                   value={studentForm.semester}
                   onValueChange={(v) => setStudentForm({ ...studentForm, semester: v })}
@@ -658,7 +658,7 @@ export default function ReferralPartnerProfilePage() {
                 </div>
 
                 <FormInput
-                  label="Selling Price (₹) - Optional"
+                  label="Selling Price (₹)"
                   type="number"
                   value={studentForm.sellingPrice}
                   onChange={(e) => setStudentForm({ ...studentForm, sellingPrice: e.target.value })}
