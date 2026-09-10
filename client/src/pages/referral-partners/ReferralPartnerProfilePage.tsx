@@ -323,8 +323,7 @@ export default function ReferralPartnerProfilePage() {
               variant="destructive"
               size="sm"
               onClick={() => setIsConfirmDeleteOpen(true)}
-              disabled={students.length > 0}
-              title={students.length > 0 ? "Cannot delete - this partner has students on record" : "Delete partner"}
+              title="Delete partner"
             >
               <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete Partner
             </Button>
