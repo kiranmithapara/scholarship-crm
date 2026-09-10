@@ -100,7 +100,7 @@ export default function ReferralPartnerProfilePage() {
 
   if (error) {
     return (
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         <ErrorState description="We couldn't load this partner's profile." onRetry={refetch} />
       </div>
     );
@@ -108,9 +108,9 @@ export default function ReferralPartnerProfilePage() {
 
   if (isLoading || !data || !id) {
     return (
-      <div className="space-y-4 p-6">
+      <div className="space-y-4 p-4 sm:p-6">
         <Skeleton className="h-24 w-full" />
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-24 w-full" />
           ))}
@@ -272,34 +272,34 @@ export default function ReferralPartnerProfilePage() {
   const hasPendingCommissions = commissions?.some((c) => c.status === "pending") ?? false;
 
   return (
-    <div className="space-y-6 p-6">
-      <Link to={ROUTES.REFERRAL_PARTNERS} className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
+    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+      <Link to={ROUTES.REFERRAL_PARTNERS} className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-3.5 w-3.5" /> Back to Referral Partners
       </Link>
 
       {/* Profile header */}
       <Card>
-        <CardContent className="flex flex-col items-start gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <Avatar className="h-16 w-16">
+        <CardContent className="flex flex-col gap-4 p-4 sm:p-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+            <Avatar className="h-14 w-14 sm:h-16 sm:w-16 shrink-0 border border-border">
               <AvatarImage src={partner.photoUrl ?? undefined} alt={partner.fullName} />
-              <AvatarFallback className="text-lg">{getInitials(partner.fullName)}</AvatarFallback>
+              <AvatarFallback className="text-base sm:text-lg">{getInitials(partner.fullName)}</AvatarFallback>
             </Avatar>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-semibold text-foreground">{partner.fullName}</h1>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <h1 className="text-lg sm:text-xl font-semibold text-foreground truncate">{partner.fullName}</h1>
                 <Badge variant={partner.isActive ? "success" : "danger"}>{partner.isActive ? "Active" : "Blocked"}</Badge>
               </div>
-              <p className="text-sm text-muted-foreground">{partner.email}</p>
-              <p className="text-sm text-muted-foreground">Joined {formatDate(partner.createdAt)}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground truncate" title={partner.email}>{partner.email}</p>
+              <p className="text-xs text-muted-foreground">Joined {formatDate(partner.createdAt)}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto pt-3 lg:pt-0 border-t border-border/50 lg:border-t-0">
             <QuickActions mobile={partner.mobile} whatsappMessage={`Hi ${partner.fullName}, `} />
-            <Button variant="outline" size="sm" onClick={() => setIsEditPartnerOpen(true)}>
+            <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={() => setIsEditPartnerOpen(true)}>
               <Pencil className="mr-1.5 h-3.5 w-3.5" /> Edit Partner
             </Button>
-            <Button variant="gradient" size="sm" onClick={() => setShowAddStudent(true)}>
+            <Button variant="gradient" size="sm" className="flex-1 sm:flex-none" onClick={() => setShowAddStudent(true)}>
               <Plus className="mr-1.5 h-3.5 w-3.5" /> Add Student
             </Button>
           </div>
@@ -307,58 +307,58 @@ export default function ReferralPartnerProfilePage() {
       </Card>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
         <Card>
-          <CardContent className="p-5">
-            <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-primary-50 text-primary">
-              <GraduationCap className="h-4.5 w-4.5" />
+          <CardContent className="p-3.5 sm:p-5">
+            <div className="mb-2 flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg bg-primary-50 text-primary">
+              <GraduationCap className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
             </div>
-            <p className="text-xs text-muted-foreground">Prepaid Students</p>
-            <p className="text-xl font-semibold text-foreground">{stats.prepaidCount}</p>
+            <p className="text-[11px] sm:text-xs text-muted-foreground">Prepaid Students</p>
+            <p className="text-lg sm:text-xl font-semibold text-foreground">{stats.prepaidCount}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-5">
-            <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-primary-50 text-primary">
-              <GraduationCap className="h-4.5 w-4.5" />
+          <CardContent className="p-3.5 sm:p-5">
+            <div className="mb-2 flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg bg-primary-50 text-primary">
+              <GraduationCap className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
             </div>
-            <p className="text-xs text-muted-foreground">Postpaid Students</p>
-            <p className="text-xl font-semibold text-foreground">{stats.postpaidCount}</p>
+            <p className="text-[11px] sm:text-xs text-muted-foreground">Postpaid Students</p>
+            <p className="text-lg sm:text-xl font-semibold text-foreground">{stats.postpaidCount}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-5">
-            <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-warning/10 text-warning">
-              <Clock className="h-4.5 w-4.5" />
+          <CardContent className="p-3.5 sm:p-5">
+            <div className="mb-2 flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg bg-warning/10 text-warning">
+              <Clock className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
             </div>
-            <p className="text-xs text-muted-foreground">Commission Pending</p>
-            <p className="text-xl font-semibold text-foreground">{formatCurrency(stats.commission.pending)}</p>
+            <p className="text-[11px] sm:text-xs text-muted-foreground">Commission Pending</p>
+            <p className="text-lg sm:text-xl font-semibold text-foreground">{formatCurrency(stats.commission.pending)}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-5">
-            <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-success/10 text-success">
-              <CheckCircle2 className="h-4.5 w-4.5" />
+          <CardContent className="p-3.5 sm:p-5">
+            <div className="mb-2 flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg bg-success/10 text-success">
+              <CheckCircle2 className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
             </div>
-            <p className="text-xs text-muted-foreground">Commission Paid</p>
-            <p className="text-xl font-semibold text-foreground">{formatCurrency(stats.commission.paid)}</p>
+            <p className="text-[11px] sm:text-xs text-muted-foreground">Commission Paid</p>
+            <p className="text-lg sm:text-xl font-semibold text-foreground">{formatCurrency(stats.commission.paid)}</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Pricing editor */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-1.5">
-            <IndianRupee className="h-3.5 w-3.5" /> Partner Pricing
+        <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
+          <CardTitle className="text-base sm:text-lg flex items-center gap-1.5">
+            <IndianRupee className="h-4 w-4" /> Partner Pricing
           </CardTitle>
         </CardHeader>
-        <CardContent className="pt-0">
-          <p className="mb-4 text-xs text-muted-foreground">
+        <CardContent className="p-4 sm:p-6 pt-0">
+          <p className="mb-4 text-xs text-muted-foreground leading-relaxed">
             The buying (cost) price this partner pays per service type. This becomes the reference cost when they add a new student -
             their profit is automatically calculated as Selling Price minus this Buying Price.
           </p>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2">
             <FormInput
               label="Prepaid Service Cost (₹)"
               type="number"
@@ -374,7 +374,7 @@ export default function ReferralPartnerProfilePage() {
               placeholder="e.g. 4000"
             />
           </div>
-          <Button variant="gradient" size="sm" className="mt-4" onClick={handleSavePricing} isLoading={isSavingPricing}>
+          <Button variant="gradient" size="sm" className="mt-4 w-full sm:w-auto" onClick={handleSavePricing} isLoading={isSavingPricing}>
             <Save className="mr-1.5 h-3.5 w-3.5" /> Save Pricing
           </Button>
         </CardContent>
@@ -382,17 +382,17 @@ export default function ReferralPartnerProfilePage() {
 
       {/* Commissions list */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-1.5">
-            <Wallet className="h-3.5 w-3.5" /> Commissions
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-4 sm:p-6 pb-2 sm:pb-3">
+          <CardTitle className="text-base sm:text-lg flex items-center gap-1.5">
+            <Wallet className="h-4 w-4" /> Commissions
           </CardTitle>
           {hasPendingCommissions && (
-            <Button variant="gradient" size="sm" onClick={handleMarkAllPaid} isLoading={isMarkingAll}>
+            <Button variant="gradient" size="sm" className="w-full sm:w-auto" onClick={handleMarkAllPaid} isLoading={isMarkingAll}>
               <CheckCheck className="mr-1.5 h-3.5 w-3.5" /> Mark All as Paid
             </Button>
           )}
         </CardHeader>
-        <CardContent className="pt-0">
+        <CardContent className="p-4 sm:p-6 pt-0">
           {commissionsLoading ? (
             <div className="space-y-3">
               {Array.from({ length: 3 }).map((_, i) => (
@@ -402,8 +402,8 @@ export default function ReferralPartnerProfilePage() {
           ) : !commissions || commissions.length === 0 ? (
             <EmptyState icon={Wallet} title="No commissions yet" description="Commissions are created automatically once an application is verified." />
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
+              <table className="w-full min-w-[500px] text-sm">
                 <thead>
                   <tr className="border-b border-border text-left text-xs text-muted-foreground">
                     <th className="pb-2 font-medium">Student</th>
@@ -431,6 +431,7 @@ export default function ReferralPartnerProfilePage() {
                         <Button
                           variant={commission.status === "pending" ? "gradient" : "outline"}
                           size="sm"
+                          className="text-xs h-8 px-2.5 whitespace-nowrap"
                           onClick={() => handleToggleCommission(commission)}
                           isLoading={updatingCommissionId === commission.id}
                         >
@@ -456,34 +457,34 @@ export default function ReferralPartnerProfilePage() {
 
       {/* Students list as CARDS */}
       <div>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Students ({students.length})</h2>
+        <div className="mb-3 sm:mb-4 flex items-center justify-between">
+          <h2 className="text-base sm:text-lg font-semibold text-foreground">Students ({students.length})</h2>
         </div>
 
         {students.length === 0 ? (
           <EmptyState icon={GraduationCap} title="No students yet" description="This partner hasn't added any students." />
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {students.map((student) => (
               <Card key={student.id} className="transition-shadow hover:shadow-soft-md">
-                <CardContent className="p-5">
-                  <div className="mb-3 flex items-start justify-between">
-                    <div>
-                      <Link to={buildPath(ROUTES.STUDENT_DETAILS, { id: student.id })} className="font-medium text-foreground hover:text-primary">
+                <CardContent className="p-4 sm:p-5">
+                  <div className="mb-2.5 flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <Link to={buildPath(ROUTES.STUDENT_DETAILS, { id: student.id })} className="font-medium text-foreground hover:text-primary block truncate">
                         {student.fullName}
                       </Link>
-                      <p className="text-xs text-muted-foreground">{student.collegeName}</p>
+                      <p className="text-xs text-muted-foreground truncate">{student.collegeName}</p>
                     </div>
                     <StatusBadge status={student.status} />
                   </div>
-                  <div className="mb-4 flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
                     <span className="capitalize">{student.serviceType} Service</span>
                     <span>•</span>
                     <span>{formatDate(student.createdAt)}</span>
                   </div>
-                  <div className="flex items-center justify-between border-t border-border pt-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
                     <QuickActions mobile={student.mobile} whatsappMessage={`Hi ${student.fullName}, `} />
-                    <Button asChild variant="ghost" size="sm">
+                    <Button asChild variant="ghost" size="sm" className="text-xs h-8">
                       <Link to={buildPath(ROUTES.STUDENT_DETAILS, { id: student.id })}>View Details</Link>
                     </Button>
                   </div>
@@ -496,23 +497,25 @@ export default function ReferralPartnerProfilePage() {
 
       {/* V6 NEW: Partner Notes section */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-1.5">
-            <StickyNote className="h-3.5 w-3.5" /> Notes about {partner.fullName}
+        <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
+          <CardTitle className="text-base sm:text-lg flex items-center gap-1.5">
+            <StickyNote className="h-4 w-4" /> Notes about {partner.fullName}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4 pt-0">
-          <div className="space-y-2 rounded-lg border border-dashed border-border p-4">
-            <Label>Add New Note</Label>
+        <CardContent className="space-y-4 p-4 sm:p-6 pt-0">
+          <div className="space-y-2 rounded-lg border border-dashed border-border p-3.5 sm:p-4">
+            <Label className="text-xs sm:text-sm">Add New Note</Label>
             <Textarea
               value={newNote}
               onChange={(e) => setNewNote(e.target.value)}
               rows={3}
               placeholder={`What did ${partner.fullName} say? e.g. "Spoke to 4 students yesterday about receipts"...`}
+              className="text-sm"
             />
             <Button
               variant="gradient"
               size="sm"
+              className="w-full sm:w-auto"
               onClick={handleAddNote}
               isLoading={isAddingNote}
               disabled={!newNote.trim()}
@@ -530,9 +533,9 @@ export default function ReferralPartnerProfilePage() {
           ) : (
             <div className="space-y-3">
               {data.notes.map((note) => (
-                <div key={note.id} className="rounded-lg border border-border bg-muted/30 p-4">
+                <div key={note.id} className="rounded-lg border border-border bg-muted/30 p-3.5 sm:p-4">
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm text-foreground whitespace-pre-wrap flex-1">
+                    <p className="text-xs sm:text-sm text-foreground whitespace-pre-wrap flex-1 break-words">
                       {note.note}
                     </p>
                     <div className="flex items-center gap-1 shrink-0">
@@ -559,7 +562,7 @@ export default function ReferralPartnerProfilePage() {
                       </Button>
                     </div>
                   </div>
-                  <p className="mt-2 text-xs text-muted-foreground">
+                  <p className="mt-2 text-[11px] sm:text-xs text-muted-foreground">
                     {formatDateTime(note.createdAt)} • {note.author?.fullName ?? "Unknown"}
                     {note.updatedAt !== note.createdAt && " • edited"}
                   </p>
@@ -572,16 +575,16 @@ export default function ReferralPartnerProfilePage() {
 
       {/* Add Student Modal */}
       {showAddStudent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-lg rounded-xl bg-card p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-4 animate-fade-in">
+          <div className="w-full max-w-lg rounded-xl bg-card p-4 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Add Student for {partner.fullName}</h2>
-              <Button variant="ghost" size="icon" onClick={() => setShowAddStudent(false)}>
+              <h2 className="text-base sm:text-lg font-semibold">Add Student for {partner.fullName}</h2>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowAddStudent(false)}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
             <form onSubmit={handleAddStudent} className="space-y-4">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2">
                 <FormInput
                   label="Full Name"
                   value={studentForm.fullName}
@@ -672,11 +675,11 @@ export default function ReferralPartnerProfilePage() {
 
       {/* Edit Partner Note Modal */}
       {editingNoteId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-xl bg-card p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-4 animate-fade-in">
+          <div className="w-full max-w-md rounded-xl bg-card p-4 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Edit Note</h2>
-              <Button variant="ghost" size="icon" onClick={() => setEditingNoteId(null)}>
+              <h2 className="text-base sm:text-lg font-semibold">Edit Note</h2>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingNoteId(null)}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
@@ -688,6 +691,7 @@ export default function ReferralPartnerProfilePage() {
                   onChange={(e) => setEditingNoteText(e.target.value)}
                   rows={5}
                   placeholder="Enter note..."
+                  className="text-sm"
                 />
               </div>
               <div className="flex gap-2">
