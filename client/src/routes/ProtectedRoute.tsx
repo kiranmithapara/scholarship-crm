@@ -9,12 +9,12 @@ import { PageLoader } from "@/components/common/PageLoader";
  * taaki login ke baad wapas wahi page pe bhej sake.
  */
 export function ProtectedRoute() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
 
   if (isLoading) return <PageLoader />;
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || (user && !user.isActive)) {
     return <Navigate to={ROUTES.LOGIN} state={{ from: location }} replace />;
   }
 

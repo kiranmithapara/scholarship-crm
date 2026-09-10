@@ -60,7 +60,23 @@ api.interceptors.response.use(
       requestUrl.includes("/auth/reset-password") ||
       requestUrl.includes("/auth/refresh-token");
 
-    if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isAuthRoute) {
+    const status = error.response?.status;
+    const errorData = error.response?.data as { message?: string } | undefined;
+    const errorMsg = (errorData?.message ?? "").toLowerCase();
+    const isBlocked = errorMsg.includes("block") || errorMsg.includes("deactivated") || errorMsg.includes("suspended");
+
+    // Immediate logout if account is blocked or deactivated
+    if (isBlocked && !isAuthRoute) {
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("user");
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
+      return Promise.reject(error);
+    }
+
+    if (status === 401 && originalRequest && !originalRequest._retry && !isAuthRoute) {
       const refreshToken = localStorage.getItem("refreshToken");
 
       if (!refreshToken) {

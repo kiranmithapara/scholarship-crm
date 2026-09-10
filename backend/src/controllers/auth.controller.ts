@@ -68,6 +68,9 @@ export const authController = {
   getMe: asyncHandler(async (req: Request, res: Response) => {
     if (!req.user) throw ApiError.unauthorized();
     const user = await authService.getById(req.user.id);
+    if (!user.isActive) {
+      throw ApiError.forbidden("Your account has been deactivated or blocked by administrator.");
+    }
     ApiResponse.ok(res, user.toSafeJSON(), "Current user fetched");
   }),
 
