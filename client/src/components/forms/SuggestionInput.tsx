@@ -32,7 +32,7 @@ export function SuggestionInput({
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // Keep a stable ref to fetchSuggestions so the effect doesn't loop
   const fetchRef = useRef(fetchSuggestions);

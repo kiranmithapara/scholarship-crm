@@ -19,6 +19,14 @@ export const partnerService = {
     return data.data;
   },
 
+  update: async (id: string, payload: FormData | { fullName?: string; email?: string; mobile?: string; username?: string; password?: string; prepaidCost?: number | string; postpaidCost?: number | string }): Promise<ReferralPartner> => {
+    const isFormData = payload instanceof FormData;
+    const { data } = await api.patch<ApiResponse<ReferralPartner>>(`/referral-partners/${id}`, payload, {
+      headers: isFormData ? { "Content-Type": "multipart/form-data" } : undefined,
+    });
+    return data.data;
+  },
+
   updateStatus: async (id: string, isActive: boolean): Promise<void> => {
     await api.patch(`/referral-partners/${id}/status`, { isActive });
   },

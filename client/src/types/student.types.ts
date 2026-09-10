@@ -94,7 +94,7 @@ export interface StudentDetails {
   documents: StudentDocumentItem[];
   payments: PaymentItem[];
   timeline: TimelineItem[];
-  commission: { id: string; amount: string; status: "pending" | "paid" } | null;
+  commission: { id: string; amount: string; status: "pending" | "paid"; paidAt?: string | null } | null;
   // V5 NEW: notes only present for Super Admin
   notes?: StudentNoteItem[];
 }

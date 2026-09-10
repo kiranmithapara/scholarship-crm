@@ -1,10 +1,10 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { isAxiosError } from "axios";
-import { Camera, KeyRound, Eye, EyeOff } from "lucide-react";
+import { Camera, KeyRound, Eye, EyeOff, ShieldAlert } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { FormInput } from "@/components/forms/FormInput";
@@ -16,7 +16,9 @@ import { getInitials } from "@/lib/utils";
 
 const profileSchema = z.object({
   fullName: z.string().trim().min(2, "Full name is too short"),
+  email: z.string().trim().email("Enter a valid email address"),
   mobile: z.string().trim().regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit mobile number"),
+  currentPassword: z.string().optional(),
 });
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
@@ -41,13 +43,35 @@ export default function ProfilePage() {
   const { user, setUser } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [showEmailPw, setShowEmailPw] = useState(false);
   const [showCurrentPw, setShowCurrentPw] = useState(false);
   const [showNewPw, setShowNewPw] = useState(false);
 
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
-    defaultValues: { fullName: user?.fullName ?? "", mobile: user?.mobile ?? "" },
+    defaultValues: {
+      fullName: user?.fullName ?? "",
+      email: user?.email ?? "",
+      mobile: user?.mobile ?? "",
+      currentPassword: "",
+    },
   });
+
+  useEffect(() => {
+    if (user) {
+      profileForm.reset({
+        fullName: user.fullName || "",
+        email: user.email || "",
+        mobile: user.mobile || "",
+        currentPassword: "",
+      });
+    }
+  }, [user, profileForm]);
+
+  const watchedEmail = profileForm.watch("email");
+  const isEmailChanged =
+    !!user?.email &&
+    (watchedEmail || "").trim().toLowerCase() !== (user.email || "").trim().toLowerCase();
 
   const passwordForm = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordSchema),
@@ -73,9 +97,29 @@ export default function ProfilePage() {
   };
 
   const onSaveProfile = async (values: ProfileFormValues) => {
+    if (isEmailChanged && !values.currentPassword?.trim()) {
+      profileForm.setError("currentPassword", {
+        message: "Current password is required to change email address",
+      });
+      toast.error("Please enter your current password to change your email address");
+      return;
+    }
+
     try {
-      const updatedUser = await userService.updateProfile(values);
+      const updatedUser = await userService.updateProfile({
+        fullName: values.fullName,
+        mobile: values.mobile,
+        email: values.email,
+        currentPassword: values.currentPassword?.trim() || undefined,
+      });
       setUser(updatedUser);
+      profileForm.reset({
+        fullName: updatedUser.fullName,
+        email: updatedUser.email,
+        mobile: updatedUser.mobile,
+        currentPassword: "",
+      });
+      setShowEmailPw(false);
       toast.success("Profile updated successfully");
     } catch (error) {
       const message = isAxiosError(error) ? error.response?.data?.message : null;
@@ -137,13 +181,52 @@ export default function ProfilePage() {
         <CardContent className="pt-0">
           <form onSubmit={profileForm.handleSubmit(onSaveProfile)} className="space-y-4" noValidate>
             <FormInput label="Full Name" error={profileForm.formState.errors.fullName?.message} {...profileForm.register("fullName")} />
-            <FormInput
-              label="Mobile Number"
-              type="tel"
-              maxLength={10}
-              error={profileForm.formState.errors.mobile?.message}
-              {...profileForm.register("mobile")}
-            />
+            
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <FormInput
+                label="Email Address"
+                type="email"
+                error={profileForm.formState.errors.email?.message}
+                {...profileForm.register("email")}
+              />
+              <FormInput
+                label="Mobile Number"
+                type="tel"
+                maxLength={10}
+                error={profileForm.formState.errors.mobile?.message}
+                {...profileForm.register("mobile")}
+              />
+            </div>
+
+            {isEmailChanged && (
+              <div className="rounded-lg border border-warning/30 bg-warning/5 p-4 space-y-3 animate-in fade-in duration-200">
+                <div className="flex items-start gap-2.5 text-xs text-warning-foreground">
+                  <ShieldAlert className="h-4 w-4 shrink-0 text-warning mt-0.5" />
+                  <div>
+                    <span className="font-semibold text-warning">Security Verification: </span>
+                    You are changing your email from <span className="font-medium text-foreground">{user.email}</span> to <span className="font-medium text-foreground">{watchedEmail}</span>. Enter your current password to confirm this change.
+                  </div>
+                </div>
+                <FormInput
+                  label="Current Password (Required for Email Change)"
+                  type={showEmailPw ? "text" : "password"}
+                  placeholder="Enter your current password"
+                  error={profileForm.formState.errors.currentPassword?.message}
+                  rightElement={
+                    <button
+                      type="button"
+                      onClick={() => setShowEmailPw((s) => !s)}
+                      className="text-muted-foreground hover:text-foreground"
+                      tabIndex={-1}
+                    >
+                      {showEmailPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  }
+                  {...profileForm.register("currentPassword")}
+                />
+              </div>
+            )}
+
             <Button type="submit" variant="gradient" isLoading={profileForm.formState.isSubmitting}>
               Save Changes
             </Button>

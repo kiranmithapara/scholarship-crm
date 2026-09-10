@@ -27,7 +27,7 @@ export default function StudentListPage() {
 
   const prepaidCount = data?.items.filter((s) => s.serviceType === "prepaid").length ?? 0;
   const postpaidCount = data?.items.filter((s) => s.serviceType === "postpaid").length ?? 0;
-  const pending = data?.items.filter((s) => s.status === "pending" || s.status === "correction_requested").length ?? 0;
+  const pending = data?.items.filter((s) => s.status === "pending").length ?? 0;
   const completed = data?.items.filter((s) => s.status === "completed").length ?? 0;
 
   return (

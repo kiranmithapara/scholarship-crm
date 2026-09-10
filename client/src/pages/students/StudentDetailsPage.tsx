@@ -551,7 +551,9 @@ export default function StudentDetailsPage() {
 
               <div>
                 <p className="text-xs text-muted-foreground">Payment Status</p>
-                <p className="mt-0.5"><StatusBadge status={student.commission?.status ?? "pending"} /></p>
+                <div className="mt-0.5">
+                  <StatusBadge status={student.commission?.status ?? "pending"} />
+                </div>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Payment Date</p>

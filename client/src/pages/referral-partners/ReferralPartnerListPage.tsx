@@ -15,6 +15,7 @@ import { Pagination } from "@/components/common/Pagination";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { QuickActions } from "@/components/common/QuickActions";
 import { CreatePartnerDialog } from "@/components/partners/CreatePartnerDialog";
+import { EditPartnerDialog } from "@/components/partners/EditPartnerDialog";
 import { usePartners } from "@/hooks/usePartners";
 import { partnerService } from "@/services/partner.service";
 import { getInitials, formatCurrency } from "@/lib/utils";
@@ -26,6 +27,7 @@ export default function ReferralPartnerListPage() {
   const { data, isLoading, error, setPage, search, setSearch, status, setStatus, refetch } = usePartners();
   const [actionTarget, setActionTarget] = useState<ReferralPartner | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ReferralPartner | null>(null);
+  const [editTarget, setEditTarget] = useState<ReferralPartner | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -183,8 +185,8 @@ export default function ReferralPartnerListPage() {
                           </div>
                         </td>
                         <td className="px-4 py-3.5 text-muted-foreground">{partner.mobile}</td>
-                        <td className="px-4 py-3.5 text-muted-foreground">{partner.studentCount}</td>
-                        <td className="px-4 py-3.5 text-muted-foreground">{formatCurrency(partner.totalCommission)}</td>
+                        <td className="px-4 py-3.5 text-muted-foreground">{partner.studentCount ?? 0}</td>
+                        <td className="px-4 py-3.5 text-muted-foreground">{formatCurrency(partner.totalCommission ?? 0)}</td>
                         <td className="px-4 py-3.5">
                           <Badge variant={partner.isActive ? "success" : "danger"}>{partner.isActive ? "Active" : "Blocked"}</Badge>
                         </td>
@@ -196,7 +198,13 @@ export default function ReferralPartnerListPage() {
                                 <Eye className="h-4 w-4" />
                               </Link>
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Edit">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                              onClick={() => setEditTarget(partner)}
+                              aria-label="Edit"
+                            >
                               <Pencil className="h-4 w-4" />
                             </Button>
                             <Button
@@ -261,6 +269,13 @@ export default function ReferralPartnerListPage() {
       <CreatePartnerDialog
         open={isCreateOpen}
         onOpenChange={setIsCreateOpen}
+        onSuccess={refetch}
+      />
+
+      <EditPartnerDialog
+        open={!!editTarget}
+        partner={editTarget}
+        onOpenChange={(open) => !open && setEditTarget(null)}
         onSuccess={refetch}
       />
     </div>

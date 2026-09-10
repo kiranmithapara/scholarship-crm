@@ -25,7 +25,7 @@ router.get("/", validate(listPartnersSchema), partnerController.list);
 router.post("/", uploadSingleFile, validate(createPartnerSchema), partnerController.create);
 router.get("/:id", validate(partnerIdParamSchema), partnerController.getProfile);
 router.patch("/:id/status", validate(updatePartnerStatusSchema), partnerController.updateStatus);
-router.patch("/:id", validate(updatePartnerSchema), partnerController.update);
+router.patch("/:id", uploadSingleFile, validate(updatePartnerSchema), partnerController.update);
 router.patch("/:id/pricing", validate(updatePartnerPricingSchema), partnerController.updatePricing);
 router.get("/:id/commissions", validate(partnerIdParamSchema), partnerController.getCommissions);
 router.patch("/:id/commissions/:commissionId/status", validate(updateCommissionStatusSchema), partnerController.updateCommissionStatus);

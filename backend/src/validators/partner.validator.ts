@@ -23,12 +23,33 @@ export const updatePartnerStatusSchema = z.object({
 export const updatePartnerSchema = z.object({
   params: z.object({ id: z.string().uuid("Invalid partner id") }),
   body: z.object({
-    fullName: z.string().trim().min(2).max(150).optional(),
+    fullName: z.string().trim().min(2, "Full name must be at least 2 characters").max(150).optional(),
+    email: z.string().trim().email("Enter a valid email address").optional(),
     mobile: z
       .string()
       .trim()
       .regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit mobile number")
       .optional(),
+    username: z
+      .string()
+      .trim()
+      .min(3, "Username must be at least 3 characters")
+      .max(50)
+      .regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers and underscores")
+      .optional(),
+    password: z
+      .string()
+      .optional()
+      .transform((val) => (val && val.trim().length > 0 ? val.trim() : undefined))
+      .pipe(z.string().min(6, "Password must be at least 6 characters").optional()),
+    prepaidCost: z
+      .union([z.coerce.number().nonnegative(), z.literal("")])
+      .optional()
+      .transform((val) => (val === "" ? undefined : val)),
+    postpaidCost: z
+      .union([z.coerce.number().nonnegative(), z.literal("")])
+      .optional()
+      .transform((val) => (val === "" ? undefined : val)),
     photoUrl: z.string().url().optional().nullable(),
   }),
 });

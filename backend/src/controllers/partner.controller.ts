@@ -69,8 +69,22 @@ export const partnerController = {
   update: asyncHandler(async (req: Request, res: Response) => {
     if (!req.user) throw ApiError.unauthorized();
     const { id } = req.params;
+    let photoUrl = req.body.photoUrl;
 
-    const partner = await partnerService.update(id as string, req.body);
+    if (req.file) {
+      const uploadRes = await uploadService.uploadFile(
+        req.file.buffer,
+        req.file.originalname,
+        req.file.mimetype,
+        "avatars"
+      );
+      photoUrl = uploadRes.url;
+    }
+
+    const partner = await partnerService.update(id as string, {
+      ...req.body,
+      ...(photoUrl !== undefined ? { photoUrl } : {}),
+    });
 
     await activityLogService.logActivity(req, { userId: req.user.id, action: "PARTNER_UPDATED", details: { partnerId: id } });
 

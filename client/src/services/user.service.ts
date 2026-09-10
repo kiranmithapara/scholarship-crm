@@ -3,7 +3,7 @@ import type { ApiResponse } from "@/types/api.types";
 import type { User } from "@/types/auth.types";
 
 export const userService = {
-  updateProfile: async (payload: { fullName?: string; mobile?: string }): Promise<User> => {
+  updateProfile: async (payload: { fullName?: string; mobile?: string; email?: string; currentPassword?: string }): Promise<User> => {
     const { data } = await api.patch<ApiResponse<User>>("/users/me", payload);
     return data.data;
   },

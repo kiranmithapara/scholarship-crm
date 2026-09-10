@@ -3,11 +3,14 @@ export interface ReferralPartner {
   fullName: string;
   mobile: string;
   email: string;
+  username?: string;
   photoUrl: string | null;
   isActive: boolean;
+  prepaidCost?: string | null;
+  postpaidCost?: string | null;
   createdAt: string;
-  studentCount: number;
-  totalCommission: number;
+  studentCount?: number;
+  totalCommission?: number;
 }
 
 export interface PartnerListResult {

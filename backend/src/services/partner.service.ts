@@ -240,11 +240,70 @@ export const partnerService = {
     return partner;
   },
 
-  update: async (id: string, updates: { fullName?: string; mobile?: string; photoUrl?: string | null }): Promise<User> => {
+  update: async (
+    id: string,
+    updates: {
+      fullName?: string;
+      mobile?: string;
+      email?: string;
+      username?: string;
+      password?: string;
+      prepaidCost?: number | string | null;
+      postpaidCost?: number | string | null;
+      photoUrl?: string | null;
+    }
+  ): Promise<User> => {
     const partner = await User.findOne({ where: { id, role: "referral_admin" } });
     if (!partner) throw ApiError.notFound("Referral partner not found");
 
-    await partner.update(updates);
+    if (updates.email && updates.email.trim().toLowerCase() !== partner.email.toLowerCase()) {
+      const existingEmail = await User.findOne({
+        where: { email: updates.email.trim().toLowerCase(), id: { [Op.ne]: id } },
+      });
+      if (existingEmail) throw ApiError.conflict("Email address is already registered");
+      partner.email = updates.email.trim().toLowerCase();
+    }
+
+    if (updates.mobile && updates.mobile.trim() !== partner.mobile) {
+      const existingMobile = await User.findOne({
+        where: { mobile: updates.mobile.trim(), id: { [Op.ne]: id } },
+      });
+      if (existingMobile) throw ApiError.conflict("Mobile number is already registered");
+      partner.mobile = updates.mobile.trim();
+    }
+
+    if (updates.username && updates.username.trim() !== partner.username) {
+      const existingUsername = await User.findOne({
+        where: { username: updates.username.trim(), id: { [Op.ne]: id } },
+      });
+      if (existingUsername) throw ApiError.conflict("Username is already taken");
+      partner.username = updates.username.trim();
+    }
+
+    if (updates.fullName && updates.fullName.trim()) {
+      partner.fullName = updates.fullName.trim();
+    }
+
+    if (updates.password && updates.password.trim().length > 0) {
+      if (updates.password.trim().length < 6) {
+        throw ApiError.badRequest("Password must be at least 6 characters");
+      }
+      partner.password = await hashPassword(updates.password.trim());
+    }
+
+    if (updates.prepaidCost !== undefined) {
+      partner.prepaidCost = updates.prepaidCost !== null && updates.prepaidCost !== "" ? Number(updates.prepaidCost).toFixed(2) : null;
+    }
+
+    if (updates.postpaidCost !== undefined) {
+      partner.postpaidCost = updates.postpaidCost !== null && updates.postpaidCost !== "" ? Number(updates.postpaidCost).toFixed(2) : null;
+    }
+
+    if (updates.photoUrl !== undefined) {
+      partner.photoUrl = updates.photoUrl;
+    }
+
+    await partner.save();
     return partner;
   },
 

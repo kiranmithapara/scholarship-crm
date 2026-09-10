@@ -33,12 +33,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { FormInput } from "@/components/forms/FormInput";
 import { SuggestionInput } from "@/components/forms/SuggestionInput";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { EditPartnerDialog } from "@/components/partners/EditPartnerDialog";
 import { usePartnerProfile } from "@/hooks/usePartnerProfile";
 import { partnerService } from "@/services/partner.service";
 import { studentService } from "@/services/student.service";
 import { getInitials, formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import { ROUTES, buildPath } from "@/constants/routes.constant";
-import type { CommissionItem } from "@/types/partner.types";
+import type { CommissionItem, ReferralPartner } from "@/types/partner.types";
 import type { CreateStudentInput } from "@/types/student.types";
 
 export default function ReferralPartnerProfilePage() {
@@ -52,6 +53,7 @@ export default function ReferralPartnerProfilePage() {
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isMarkingAll, setIsMarkingAll] = useState(false);
+  const [isEditPartnerOpen, setIsEditPartnerOpen] = useState(false);
 
   const [commissions, setCommissions] = useState<CommissionItem[] | null>(null);
   const [commissionsLoading, setCommissionsLoading] = useState(true);
@@ -311,6 +313,9 @@ export default function ReferralPartnerProfilePage() {
           </div>
           <div className="flex items-center gap-2">
             <QuickActions mobile={partner.mobile} whatsappMessage={`Hi ${partner.fullName}, `} />
+            <Button variant="outline" size="sm" onClick={() => setIsEditPartnerOpen(true)}>
+              <Pencil className="mr-1.5 h-3.5 w-3.5" /> Edit Partner
+            </Button>
             <Button variant="gradient" size="sm" onClick={() => setShowAddStudent(true)}>
               <Plus className="mr-1.5 h-3.5 w-3.5" /> Add Student
             </Button>
@@ -750,6 +755,13 @@ export default function ReferralPartnerProfilePage() {
         variant="destructive"
         isLoading={isDeletingNote}
         onConfirm={handleDeleteNote}
+      />
+
+      <EditPartnerDialog
+        open={isEditPartnerOpen}
+        partner={partner as unknown as ReferralPartner}
+        onOpenChange={setIsEditPartnerOpen}
+        onSuccess={refetch}
       />
     </div>
   );
