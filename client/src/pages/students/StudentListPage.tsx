@@ -37,7 +37,7 @@ export default function StudentListPage() {
 
   useEffect(() => {
     partnerService
-      .list({ page: 1, pageSize: 100, status: "all" })
+      .list({ page: 1, pageSize: 200, status: "all" })
       .then((res) => {
         const sorted = res.items
           .map((p) => ({ id: p.id, fullName: p.fullName }))

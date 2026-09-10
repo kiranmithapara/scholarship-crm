@@ -24,10 +24,15 @@ export const studentController = {
       pageSize: number;
       search?: string;
       serviceType: "prepaid" | "postpaid" | "all";
-      status: "pending" | "completed" | "all";
+      status: "pending" | "verified" | "completed" | "correction_requested" | "all";
       referralPartnerId?: string;
     };
-    const referralPartnerId = req.user.role === "referral_admin" ? req.user.id : queryPartnerId;
+    const cleanPartnerId =
+      queryPartnerId && queryPartnerId !== "all" && queryPartnerId !== "undefined" && queryPartnerId.trim() !== ""
+        ? queryPartnerId.trim()
+        : undefined;
+
+    const referralPartnerId = req.user.role === "referral_admin" ? req.user.id : cleanPartnerId;
     const result = await studentService.list({ page, pageSize, search, serviceType, status, referralPartnerId });
     ApiResponse.ok(res, result, "Students fetched successfully");
   }),

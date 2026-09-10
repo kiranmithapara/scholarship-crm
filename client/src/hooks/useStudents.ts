@@ -19,17 +19,39 @@ export function useStudents() {
 
   const debouncedSearch = useDebounce(search, 400);
 
+  const handleSetSearch = (val: string) => {
+    setSearch(val);
+    setPage(1);
+  };
+
+  const handleSetServiceType = (val: "prepaid" | "postpaid" | "all") => {
+    setServiceType(val);
+    setPage(1);
+  };
+
+  const handleSetStatus = (val: "pending" | "verified" | "completed" | "correction_requested" | "all") => {
+    setStatus(val);
+    setPage(1);
+  };
+
+  const handleSetReferralPartnerId = (val: string) => {
+    setReferralPartnerId(val);
+    setPage(1);
+  };
+
   const fetchStudents = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
+      const cleanPartner = referralPartnerId && referralPartnerId !== "all" ? referralPartnerId.trim() : undefined;
+      const cleanSearch = debouncedSearch && debouncedSearch.trim() ? debouncedSearch.trim() : undefined;
       const result = await studentService.list({
         page,
         pageSize: 10,
-        search: debouncedSearch || undefined,
+        search: cleanSearch,
         serviceType,
         status,
-        referralPartnerId: referralPartnerId !== "all" ? referralPartnerId : undefined,
+        referralPartnerId: cleanPartner,
       });
       setData(result);
     } catch (err) {
@@ -43,10 +65,6 @@ export function useStudents() {
     fetchStudents();
   }, [fetchStudents]);
 
-  useEffect(() => {
-    setPage(1);
-  }, [debouncedSearch, serviceType, status, referralPartnerId]);
-
   return {
     data,
     isLoading,
@@ -54,13 +72,13 @@ export function useStudents() {
     page,
     setPage,
     search,
-    setSearch,
+    setSearch: handleSetSearch,
     serviceType,
-    setServiceType,
+    setServiceType: handleSetServiceType,
     status,
-    setStatus,
+    setStatus: handleSetStatus,
     referralPartnerId,
-    setReferralPartnerId,
+    setReferralPartnerId: handleSetReferralPartnerId,
     refetch: fetchStudents,
   };
 }

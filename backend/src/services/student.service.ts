@@ -92,14 +92,17 @@ export const studentService = {
 
   list: async ({ page, pageSize, search, serviceType, status, referralPartnerId }: ListStudentsParams) => {
     const where: Record<string | symbol, unknown> = {};
-    if (referralPartnerId) where.referralPartnerId = referralPartnerId;
-    if (serviceType !== "all") where.serviceType = serviceType;
-    if (status !== "all") where.status = status;
-    if (search) {
+    if (referralPartnerId && referralPartnerId !== "all" && referralPartnerId !== "undefined" && referralPartnerId.trim() !== "") {
+      where.referralPartnerId = referralPartnerId.trim();
+    }
+    if (serviceType && serviceType !== "all") where.serviceType = serviceType;
+    if (status && status !== "all") where.status = status;
+    if (search && search.trim()) {
+      const trimmedSearch = search.trim();
       where[Op.or as unknown as string] = [
-        { fullName: { [Op.iLike]: `%${search}%` } },
-        { mobile: { [Op.iLike]: `%${search}%` } },
-        { collegeName: { [Op.iLike]: `%${search}%` } },
+        { fullName: { [Op.iLike]: `%${trimmedSearch}%` } },
+        { mobile: { [Op.iLike]: `%${trimmedSearch}%` } },
+        { collegeName: { [Op.iLike]: `%${trimmedSearch}%` } },
       ];
     }
 
