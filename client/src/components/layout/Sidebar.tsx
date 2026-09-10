@@ -9,6 +9,7 @@ import {
   History,
   UserCircle,
   X,
+  StickyNote,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -25,6 +26,7 @@ const superAdminNav: NavItem[] = [
   { label: "Dashboard", href: ROUTES.DASHBOARD, icon: LayoutDashboard },
   { label: "Referral Partners", href: ROUTES.REFERRAL_PARTNERS, icon: Users },
   { label: "Students", href: ROUTES.STUDENTS, icon: GraduationCap },
+  { label: "My Notes", href: ROUTES.ADMIN_NOTES, icon: StickyNote },
   { label: "Login Logs", href: ROUTES.LOGIN_LOGS, icon: ScrollText },
   { label: "Activity Logs", href: ROUTES.ACTIVITY_LOGS, icon: History },
   { label: "Settings", href: ROUTES.SETTINGS, icon: Settings },

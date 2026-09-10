@@ -4,18 +4,19 @@ import { logger } from "./logger.config";
 
 /**
  * Sequelize instance - single connection pool shared across the whole app.
- * Models register themselves against this instance (see models/index.ts).
+ * SQL logging is disabled in all environments to keep console clean.
+ * Queries can be logged to file via `logQuery` if needed, but not by default.
  */
 export const sequelize = new Sequelize(env.db.name, env.db.user, env.db.password, {
   host: env.db.host,
   port: env.db.port,
   dialect: env.db.dialect,
-  logging: env.isDevelopment ? (sql) => logger.debug(sql) : false,
+  logging: false, // <-- SQL queries won't show in console
   dialectOptions: env.db.ssl
     ? {
         ssl: {
           require: true,
-          rejectUnauthorized: false, // needed for most managed Postgres providers (Render, Railway, etc.)
+          rejectUnauthorized: false,
         },
       }
     : {},
@@ -26,10 +27,9 @@ export const sequelize = new Sequelize(env.db.name, env.db.user, env.db.password
     idle: 10000,
   },
   define: {
-    // snake_case columns in DB, camelCase in JS - Sequelize maps automatically
     underscored: true,
     timestamps: true,
-    paranoid: true, // soft deletes by default - deleted_at column, never hard-delete scholarship records
+    paranoid: true,
   },
 });
 
@@ -37,7 +37,7 @@ export const sequelize = new Sequelize(env.db.name, env.db.user, env.db.password
 export async function connectDatabase(): Promise<void> {
   try {
     await sequelize.authenticate();
-    logger.info("PostgreSQL connection established successfully.");
+    logger.info("Database connection established successfully.");
   } catch (error) {
     logger.error("Unable to connect to PostgreSQL:", error);
     throw error;

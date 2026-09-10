@@ -6,6 +6,8 @@ import { PageLoader } from "@/components/common/PageLoader";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { ROUTES } from "@/constants/routes.constant";
 import { ROLES } from "@/constants/roles.constant";
+const AdminNotesPage = lazy(() => import("@/pages/notes/AdminNotesPage"));
+
 
 /**
  * Lazy-loaded pages - Code Splitting.
@@ -59,6 +61,7 @@ export function AppRoutes() {
               <Route path={ROUTES.SETTINGS} element={<SettingsPage />} />
               <Route path={ROUTES.LOGIN_LOGS} element={<LoginLogsPage />} />
               <Route path={ROUTES.ACTIVITY_LOGS} element={<ActivityLogsPage />} />
+              <Route path={ROUTES.ADMIN_NOTES} element={<AdminNotesPage />} />
             </Route>
 
             {/* ---------- Referral Admin only ---------- */}

@@ -32,10 +32,17 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 
 // --- Response interceptor: handle 401 with a single silent refresh attempt ---
 let isRefreshing = false;
-let pendingQueue: Array<() => void> = [];
+let pendingQueue: Array<(token: string) => void> = [];
 
-function flushQueue() {
-  pendingQueue.forEach((cb) => cb());
+function processQueue(error: Error | null, token: string | null = null) {
+  pendingQueue.forEach((prom) => {
+    if (error) {
+      // we don't use error in our current queue signature, but keeping for clarity
+      prom(error as any);
+    } else {
+      prom(token!);
+    }
+  });
   pendingQueue = [];
 }
 
@@ -69,7 +76,10 @@ api.interceptors.response.use(
       if (isRefreshing) {
         // Agar refresh already chal raha hai, is request ko queue me daal do
         return new Promise((resolve) => {
-          pendingQueue.push(() => resolve(api(originalRequest)));
+          pendingQueue.push((token: string) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            resolve(api(originalRequest));
+          });
         });
       }
 
@@ -81,11 +91,15 @@ api.interceptors.response.use(
           refreshToken,
         });
 
-        localStorage.setItem("accessToken", data.accessToken);
-        flushQueue();
+        // FIX: API response envelope ke andar accessToken hota hai, root par nahi.
+        const newAccessToken = data.data.accessToken;
+
+        localStorage.setItem("accessToken", newAccessToken);
+        processQueue(null, newAccessToken);
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
         return api(originalRequest);
       } catch (refreshError) {
-        // Refresh bhi fail - user ko forcefully logout karke login page pe bhejo
+        processQueue(refreshError as Error, null);
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
         localStorage.removeItem("user");

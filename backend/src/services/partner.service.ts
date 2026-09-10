@@ -1,5 +1,5 @@
 import { Op, fn, col, literal } from "sequelize";
-import { User, Student, Commission, LoginLog, ActivityLog, Otp } from "@/models";
+import { User, Student, Commission, LoginLog, ActivityLog, Otp, StudentTimeline, PartnerNote } from "@/models";
 import { sequelize } from "@/config/database.config";
 import { ApiError } from "@/utils/apiError";
 import { hashPassword } from "@/helpers/password.helper";
@@ -23,7 +23,6 @@ export interface CreatePartnerInput {
 }
 
 export const partnerService = {
-  /** Create a new referral partner - Super Admin only. */
   create: async (input: CreatePartnerInput): Promise<User> => {
     const existing = await User.findOne({
       where: { [Op.or]: [{ email: input.email }, { username: input.username }, { mobile: input.mobile }] },
@@ -51,7 +50,7 @@ export const partnerService = {
 
     return partner;
   },
-  /** Paginated referral partner list with student count + commission summary per partner (Page 4). */
+
   list: async ({ page, pageSize, search, status }: ListPartnersParams) => {
     const where: Record<string | symbol, unknown> = { role: "referral_admin" };
 
@@ -77,12 +76,8 @@ export const partnerService = {
         "isActive",
         "createdAt",
         [fn("COUNT", fn("DISTINCT", col("students.id"))), "studentCount"],
-        [fn("COALESCE", fn("SUM", col("commissions.amount")), 0), "totalCommission"],
       ],
-      include: [
-        { model: Student, as: "students", attributes: [], required: false },
-        { model: Commission, as: "commissions", attributes: [], required: false },
-      ],
+      include: [{ model: Student, as: "students", attributes: [], required: false }],
       group: ["User.id"],
       subQuery: false,
       order: [["createdAt", "DESC"]],
@@ -90,11 +85,34 @@ export const partnerService = {
       offset: (page - 1) * pageSize,
     });
 
-    // findAndCountAll's `count` is unreliable with GROUP BY - recompute distinct partner count separately
+    const partnerIds = rows.map((r) => (r as any).id);
+    const commissionMap: Record<string, number> = {};
+
+    if (partnerIds.length > 0) {
+      const commissions = await Commission.findAll({
+        where: { referralPartnerId: { [Op.in]: partnerIds } },
+        attributes: [
+          "referralPartnerId",
+          [fn("COALESCE", fn("SUM", col("amount")), 0), "totalCommission"],
+        ],
+        group: ["referralPartnerId"],
+        raw: true,
+      });
+
+      commissions.forEach((c: any) => {
+        commissionMap[c.referralPartnerId] = Number(c.totalCommission);
+      });
+    }
+
+    const items = rows.map((partner: any) => ({
+      ...partner.toJSON(),
+      totalCommission: commissionMap[partner.id] ?? 0,
+    }));
+
     const total = await User.count({ where });
 
     return {
-      items: rows,
+      items,
       total,
       page,
       pageSize,
@@ -102,12 +120,11 @@ export const partnerService = {
     };
   },
 
-  /** Full partner profile (Page 5) - service type breakdown, commission pending/paid, student list, pricing. */
   getProfile: async (id: string) => {
     const partner = await User.findOne({ where: { id, role: "referral_admin" } });
     if (!partner) throw ApiError.notFound("Referral partner not found");
 
-    const [prepaidCount, postpaidCount, commissionTotals, students] = await Promise.all([
+    const [prepaidCount, postpaidCount, commissionTotals, students, notes] = await Promise.all([
       Student.count({ where: { referralPartnerId: id, serviceType: "prepaid" } }),
       Student.count({ where: { referralPartnerId: id, serviceType: "postpaid" } }),
       Commission.findAll({
@@ -119,6 +136,12 @@ export const partnerService = {
         raw: true,
       }),
       Student.findAll({ where: { referralPartnerId: id }, order: [["createdAt", "DESC"]] }),
+      // V6 NEW: include partner notes
+      PartnerNote.findAll({
+        where: { partnerId: id },
+        include: [{ model: User, as: "author", attributes: ["id", "fullName"] }],
+        order: [["createdAt", "DESC"]],
+      }),
     ]);
 
     const commissionRow = (commissionTotals[0] ?? { pending: 0, paid: 0 }) as unknown as { pending: string; paid: string };
@@ -134,12 +157,10 @@ export const partnerService = {
         },
       },
       students,
+      notes,
     };
   },
 
-  /** V3 NEW: Lists every commission (one per verified student) for this partner, with the
-   * student's name attached, so Super Admin can see exactly what's owed and to whom before
-   * marking anything paid. */
   getCommissions: async (id: string) => {
     const partner = await User.findOne({ where: { id, role: "referral_admin" } });
     if (!partner) throw ApiError.notFound("Referral partner not found");
@@ -151,21 +172,56 @@ export const partnerService = {
     });
   },
 
-  /**
-   * V3 NEW: Marks a single commission as paid (or reverts it back to pending).
-   * This was a genuine gap in V2 - commissions were created as "pending" on verification
-   * but nothing anywhere could ever move them to "paid", so the Commission Paid figures on
-   * the Dashboard and Partner Profile were permanently stuck at ₹0.
-   */
   updateCommissionStatus: async (commissionId: string, status: "pending" | "paid") => {
     const commission = await Commission.findByPk(commissionId);
     if (!commission) throw ApiError.notFound("Commission record not found");
 
     await commission.update({ status, paidAt: status === "paid" ? new Date() : null });
+
+    if (status === "paid") {
+      const student = await Student.findByPk(commission.studentId);
+      if (student && student.status !== "completed") {
+        await student.update({ status: "completed" });
+        await StudentTimeline.create({
+          studentId: student.id,
+          event: "case_completed",
+          createdBy: commission.referralPartnerId,
+        });
+      }
+    }
+
     return commission;
   },
 
-  /** V2 NEW: Super Admin sets what a partner PAYS (their buying cost) for each service type. */
+  markAllCommissionsPaid: async (partnerId: string): Promise<{ count: number }> => {
+    const partner = await User.findOne({ where: { id: partnerId, role: "referral_admin" } });
+    if (!partner) throw ApiError.notFound("Referral partner not found");
+
+    const pendingCommissions = await Commission.findAll({
+      where: { referralPartnerId: partnerId, status: "pending" },
+    });
+
+    const now = new Date();
+    let count = 0;
+
+    for (const commission of pendingCommissions) {
+      await commission.update({ status: "paid", paidAt: now });
+      count++;
+
+      const student = await Student.findByPk(commission.studentId);
+      if (student && student.status !== "completed") {
+        await student.update({ status: "completed" });
+        await StudentTimeline.create({
+          studentId: student.id,
+          event: "case_completed",
+          createdBy: partnerId,
+        });
+      }
+    }
+
+    return { count };
+  },
+
   updatePricing: async (id: string, prepaidCost: number, postpaidCost: number): Promise<User> => {
     const partner = await User.findOne({ where: { id, role: "referral_admin" } });
     if (!partner) throw ApiError.notFound("Referral partner not found");
@@ -174,7 +230,6 @@ export const partnerService = {
     return partner;
   },
 
-  /** Blocks or activates a partner - Super Admin only. Sends a notification email either way. */
   updateStatus: async (id: string, isActive: boolean): Promise<User> => {
     const partner = await User.findOne({ where: { id, role: "referral_admin" } });
     if (!partner) throw ApiError.notFound("Referral partner not found");
@@ -193,19 +248,6 @@ export const partnerService = {
     return partner;
   },
 
-  /** Deletes a referral partner and cascade deletes ALL associated data - Super Admin only. */
-  /**
-   * Deletes a Referral Partner account.
-   *
-   * BUSINESS RULE: student records must be preserved PERMANENTLY (per project spec - they
-   * become a future marketing database, e.g. converting old students into new referral
-   * partners later). A partner who has ever added students can therefore NEVER be deleted -
-   * only blocked (see updateStatus). This also matches the `onDelete: RESTRICT` foreign key
-   * already defined on students.referral_partner_id at the database level.
-   *
-   * Deletion is only permitted for partners with zero students on record (e.g. a duplicate
-   * or mistakenly-created account that was never actually used).
-   */
   delete: async (id: string): Promise<User> => {
     const partner = await User.findOne({ where: { id, role: "referral_admin" } });
     if (!partner) throw ApiError.notFound("Referral partner not found");
@@ -223,11 +265,10 @@ export const partnerService = {
     const partnerPhotoUrl = partner.photoUrl;
 
     await sequelize.transaction(async (t) => {
-      // No students exist for this partner, so there is nothing to cascade at the student
-      // level - only the partner's own account-scoped records need cleaning up.
       await LoginLog.destroy({ where: { userId: id }, transaction: t });
       await ActivityLog.destroy({ where: { userId: id }, transaction: t });
       await Otp.destroy({ where: { email: partnerEmail }, transaction: t });
+      await PartnerNote.destroy({ where: { partnerId: id }, transaction: t });
       await partner.destroy({ transaction: t });
 
       if (partnerPhotoUrl) {
@@ -236,5 +277,69 @@ export const partnerService = {
     });
 
     return partner;
+  },
+
+  // ============================================================
+  // V6 NEW: Partner Notes methods
+  // ============================================================
+
+  /**
+   * Add a new note for this partner. Super Admin only.
+   */
+  addPartnerNote: async (
+    partnerId: string,
+    note: string,
+    requester: { id: string; role: string }
+  ): Promise<PartnerNote> => {
+    if (requester.role !== "super_admin") {
+      throw ApiError.forbidden("Only Super Admin can add partner notes");
+    }
+
+    const partner = await User.findOne({ where: { id: partnerId, role: "referral_admin" } });
+    if (!partner) throw ApiError.notFound("Referral partner not found");
+
+    return PartnerNote.create({
+      partnerId,
+      note: note.trim(),
+      createdBy: requester.id,
+    });
+  },
+
+  /**
+   * Update an existing partner note. Super Admin only.
+   */
+  updatePartnerNote: async (
+    partnerId: string,
+    noteId: string,
+    note: string,
+    requester: { id: string; role: string }
+  ): Promise<PartnerNote> => {
+    if (requester.role !== "super_admin") {
+      throw ApiError.forbidden("Only Super Admin can edit partner notes");
+    }
+
+    const entry = await PartnerNote.findOne({ where: { id: noteId, partnerId } });
+    if (!entry) throw ApiError.notFound("Note not found");
+
+    await entry.update({ note: note.trim() });
+    return entry;
+  },
+
+  /**
+   * Delete a partner note. Super Admin only.
+   */
+  deletePartnerNote: async (
+    partnerId: string,
+    noteId: string,
+    requester: { id: string; role: string }
+  ): Promise<void> => {
+    if (requester.role !== "super_admin") {
+      throw ApiError.forbidden("Only Super Admin can delete partner notes");
+    }
+
+    const entry = await PartnerNote.findOne({ where: { id: noteId, partnerId } });
+    if (!entry) throw ApiError.notFound("Note not found");
+
+    await entry.destroy();
   },
 };

@@ -12,11 +12,13 @@ import {
   createPartnerSchema,
   updatePartnerPricingSchema,
   updateCommissionStatusSchema,
+  addPartnerNoteSchema,
+  updatePartnerNoteSchema,
+  partnerNoteParamSchema,
 } from "@/validators/partner.validator";
 
 const router = Router();
 
-// All referral partner routes are Super Admin only - a Referral Admin never sees other partners.
 router.use(authMiddleware, roleMiddleware("super_admin"));
 
 router.get("/", validate(listPartnersSchema), partnerController.list);
@@ -24,11 +26,29 @@ router.post("/", uploadSingleFile, validate(createPartnerSchema), partnerControl
 router.get("/:id", validate(partnerIdParamSchema), partnerController.getProfile);
 router.patch("/:id/status", validate(updatePartnerStatusSchema), partnerController.updateStatus);
 router.patch("/:id", validate(updatePartnerSchema), partnerController.update);
-// V2 NEW: Super Admin sets each partner's Prepaid/Postpaid buying cost
 router.patch("/:id/pricing", validate(updatePartnerPricingSchema), partnerController.updatePricing);
-// V3 NEW: view + settle this partner's commissions (fixes the missing "mark as paid" gap)
 router.get("/:id/commissions", validate(partnerIdParamSchema), partnerController.getCommissions);
 router.patch("/:id/commissions/:commissionId/status", validate(updateCommissionStatusSchema), partnerController.updateCommissionStatus);
+// V4 NEW: bulk mark all pending commissions as paid
+router.patch("/:id/commissions/mark-all-paid", validate(partnerIdParamSchema), partnerController.markAllCommissionsPaid);
 router.delete("/:id", validate(partnerIdParamSchema), partnerController.delete);
+
+
+// V6 NEW: Partner Notes
+router.post(
+  "/:id/notes",
+  validate(addPartnerNoteSchema),
+  partnerController.addNote
+);
+router.patch(
+  "/:id/notes/:noteId",
+  validate(updatePartnerNoteSchema),
+  partnerController.updateNote
+);
+router.delete(
+  "/:id/notes/:noteId",
+  validate(partnerNoteParamSchema),
+  partnerController.deleteNote
+);
 
 export default router;

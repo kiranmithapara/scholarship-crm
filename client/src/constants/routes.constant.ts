@@ -1,8 +1,3 @@
-/**
- * Central route path registry.
- * Kabhi bhi hardcoded "/students" jaisi strings mat likho pages/links me -
- * hamesha ROUTES.STUDENTS use karo. Isse ek jagah se sab routes rename ho sakte hain.
- */
 export const ROUTES = {
   // Public / Auth
   LOGIN: "/login",
@@ -10,7 +5,7 @@ export const ROUTES = {
   FORGOT_PASSWORD: "/forgot-password",
   VERIFY_OTP: "/verify-otp",
 
-  // Shared (both roles)
+  // Shared
   DASHBOARD: "/dashboard",
   PROFILE: "/profile",
 
@@ -20,8 +15,9 @@ export const ROUTES = {
   SETTINGS: "/settings",
   LOGIN_LOGS: "/logs/login",
   ACTIVITY_LOGS: "/logs/activity",
+  ADMIN_NOTES: "/my-notes",
 
-  // Shared but scoped differently per role (students of all vs students of self)
+  // Shared with role-based scoping
   STUDENTS: "/students",
   STUDENT_DETAILS: "/students/:id",
 
@@ -34,7 +30,6 @@ export const ROUTES = {
   NOT_FOUND: "*",
 } as const;
 
-/** Helper - "/students/:id" + "42" -> "/students/42" */
 export function buildPath(path: string, params: Record<string, string | number>): string {
   let result = path;
   Object.entries(params).forEach(([key, value]) => {

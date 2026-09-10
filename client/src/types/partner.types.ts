@@ -27,6 +27,14 @@ export interface CommissionItem {
   student: { id: string; fullName: string; serviceType: "prepaid" | "postpaid" };
 }
 
+export interface PartnerNoteItem {
+  id: string;
+  note: string;
+  createdAt: string;
+  updatedAt: string;
+  author: { id: string; fullName: string };
+}
+
 export interface PartnerProfile {
   partner: {
     id: string;
@@ -55,4 +63,6 @@ export interface PartnerProfile {
     status: string;
     createdAt: string;
   }>;
+  notes: PartnerNoteItem[]; // V6 NEW
 }
+

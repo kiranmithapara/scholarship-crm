@@ -1,11 +1,7 @@
-// V2 UPGRADE: "plan" (2500/5000) -> "serviceType" (prepaid/postpaid). MYSY fields removed
-// entirely - scholarship progress is now tracked via the 13-stage TimelineEvent below.
 export type ServiceType = "prepaid" | "postpaid";
-export type StudentStatus = "pending" | "verified" | "completed" | "correction_requested";
+export type StudentStatus = "pending" | "completed";
 export type DocumentType = "aadhaar" | "hostel_receipt" | "twelfth_marksheet";
 
-// V2 NEW: The full 13-stage manual scholarship-progress workflow, plus 2 operational
-// stages carried over from V1 (correction_requested, receipt_uploaded).
 export type TimelineEvent =
   | "application_filled"
   | "application_locked_by_student"
@@ -22,11 +18,6 @@ export type TimelineEvent =
   | "case_completed"
   | "correction_requested"
   | "receipt_uploaded";
-
-// V2 NEW: The Scholarship Progress tab's manual "Add Progress Stage" picker was narrowed to
-// just these 4 checkpoints (radio buttons). TimelineEvent above stays the full 15-value set
-// since the Timeline tab still shows every stage (including ones written automatically).
-export type ProgressStage = "application_filled" | "help_center_verification_completed" | "scholarship_approved" | "payment_received";
 
 export interface StudentListItem {
   id: string;
@@ -73,6 +64,15 @@ export interface TimelineItem {
   actor: { id: string; fullName: string };
 }
 
+// V5 NEW: internal note
+export interface StudentNoteItem {
+  id: string;
+  note: string;
+  createdAt: string;
+  updatedAt: string;
+  author: { id: string; fullName: string };
+}
+
 export interface StudentDetails {
   id: string;
   fullName: string;
@@ -84,7 +84,6 @@ export interface StudentDetails {
   semester: string;
   serviceType: ServiceType;
   status: StudentStatus;
-  // V2: financial fields replace MYSY fields
   buyingPrice: string | null;
   sellingPrice: string | null;
   partnerProfit: string | null;
@@ -96,6 +95,8 @@ export interface StudentDetails {
   payments: PaymentItem[];
   timeline: TimelineItem[];
   commission: { id: string; amount: string; status: "pending" | "paid" } | null;
+  // V5 NEW: notes only present for Super Admin
+  notes?: StudentNoteItem[];
 }
 
 export interface CreateStudentInput {
@@ -103,9 +104,9 @@ export interface CreateStudentInput {
   mobile: string;
   gender: "male" | "female" | "other";
   collegeName: string;
-  universityName: string;
-  course: string;
-  semester: string;
+  universityName?: string;
+  course?: string;
+  semester?: string;
   serviceType: ServiceType;
-  sellingPrice: number;
+  sellingPrice?: number;
 }

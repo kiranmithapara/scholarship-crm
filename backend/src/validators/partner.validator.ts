@@ -63,3 +63,28 @@ export const updateCommissionStatusSchema = z.object({
     status: z.enum(["pending", "paid"]),
   }),
 });
+
+// V6 NEW: partner notes validators
+export const addPartnerNoteSchema = z.object({
+  params: z.object({ id: z.string().uuid("Invalid partner id") }),
+  body: z.object({
+    note: z.string().trim().min(1, "Note cannot be empty").max(5000),
+  }),
+});
+
+export const updatePartnerNoteSchema = z.object({
+  params: z.object({
+    id: z.string().uuid("Invalid partner id"),
+    noteId: z.string().uuid("Invalid note id"),
+  }),
+  body: z.object({
+    note: z.string().trim().min(1, "Note cannot be empty").max(5000),
+  }),
+});
+
+export const partnerNoteParamSchema = z.object({
+  params: z.object({
+    id: z.string().uuid("Invalid partner id"),
+    noteId: z.string().uuid("Invalid note id"),
+  }),
+});

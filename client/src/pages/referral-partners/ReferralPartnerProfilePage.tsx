@@ -2,7 +2,22 @@ import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { isAxiosError } from "axios";
-import { GraduationCap, Clock, CheckCircle2, ArrowLeft, IndianRupee, Save, Trash2, Wallet, RotateCcw } from "lucide-react";
+import {
+  GraduationCap,
+  Clock,
+  CheckCircle2,
+  ArrowLeft,
+  IndianRupee,
+  Save,
+  Trash2,
+  Wallet,
+  RotateCcw,
+  Plus,
+  X,
+  CheckCheck,
+  StickyNote,
+  Pencil,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,15 +28,19 @@ import { QuickActions } from "@/components/common/QuickActions";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { FormInput } from "@/components/forms/FormInput";
+import { SuggestionInput } from "@/components/forms/SuggestionInput";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { usePartnerProfile } from "@/hooks/usePartnerProfile";
 import { partnerService } from "@/services/partner.service";
-import { getInitials, formatCurrency, formatDate } from "@/lib/utils";
+import { studentService } from "@/services/student.service";
+import { getInitials, formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import { ROUTES, buildPath } from "@/constants/routes.constant";
 import type { CommissionItem } from "@/types/partner.types";
+import type { CreateStudentInput } from "@/types/student.types";
 
-/** ReferralPartnerProfilePage - Page 5. Partner details, service-type/commission breakdown,
- * pricing editor (V2 NEW - only Super Admin can set a partner's buying cost), full student list. */
 export default function ReferralPartnerProfilePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -32,11 +51,35 @@ export default function ReferralPartnerProfilePage() {
   const [isSavingPricing, setIsSavingPricing] = useState(false);
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isMarkingAll, setIsMarkingAll] = useState(false);
 
-  // V3 NEW: per-partner commission list + mark-as-paid state (fixes the missing "paid" action)
   const [commissions, setCommissions] = useState<CommissionItem[] | null>(null);
   const [commissionsLoading, setCommissionsLoading] = useState(true);
   const [updatingCommissionId, setUpdatingCommissionId] = useState<string | null>(null);
+
+  // Add Student modal
+  const [showAddStudent, setShowAddStudent] = useState(false);
+  const [studentForm, setStudentForm] = useState({
+    fullName: "",
+    mobile: "",
+    gender: "male",
+    collegeName: "",
+    universityName: "",
+    course: "",
+    semester: "",
+    serviceType: "prepaid",
+    sellingPrice: "",
+  });
+  const [isAddingStudent, setIsAddingStudent] = useState(false);
+
+  // V6 NEW: Partner Notes state
+  const [newNote, setNewNote] = useState("");
+  const [isAddingNote, setIsAddingNote] = useState(false);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editingNoteText, setEditingNoteText] = useState("");
+  const [isSavingNote, setIsSavingNote] = useState(false);
+  const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null);
+  const [isDeletingNote, setIsDeletingNote] = useState(false);
 
   const fetchCommissions = () => {
     if (!id) return;
@@ -113,7 +156,6 @@ export default function ReferralPartnerProfilePage() {
     }
   };
 
-  /** V3 NEW: toggles a commission between pending/paid - this is the fix for the previously-missing action. */
   const handleToggleCommission = async (commission: CommissionItem) => {
     if (!id) return;
     const nextStatus = commission.status === "pending" ? "paid" : "pending";
@@ -122,13 +164,127 @@ export default function ReferralPartnerProfilePage() {
       await partnerService.updateCommissionStatus(id, commission.id, nextStatus);
       toast.success(`Commission marked as ${nextStatus}`);
       fetchCommissions();
-      refetch(); // also refresh the Commission Pending/Paid summary cards above
+      refetch();
     } catch {
       toast.error("Could not update commission status");
     } finally {
       setUpdatingCommissionId(null);
     }
   };
+
+  const handleMarkAllPaid = async () => {
+    if (!id) return;
+    setIsMarkingAll(true);
+    try {
+      const result = await partnerService.markAllCommissionsPaid(id);
+      toast.success(`Marked ${result.count} commission(s) as paid`);
+      fetchCommissions();
+      refetch();
+    } catch {
+      toast.error("Could not mark all commissions as paid");
+    } finally {
+      setIsMarkingAll(false);
+    }
+  };
+
+  const handleAddStudent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsAddingStudent(true);
+    try {
+      const sellingPrice =
+        studentForm.sellingPrice === "" || studentForm.sellingPrice == null
+          ? undefined
+          : Number(studentForm.sellingPrice);
+
+      const payload: CreateStudentInput = {
+        fullName: studentForm.fullName,
+        mobile: studentForm.mobile,
+        gender: studentForm.gender as "male" | "female" | "other",
+        collegeName: studentForm.collegeName,
+        universityName: studentForm.universityName,
+        course: studentForm.course,
+        semester: studentForm.semester,
+        serviceType: studentForm.serviceType as "prepaid" | "postpaid",
+        sellingPrice,
+      };
+      await studentService.create(payload, partner.id);
+      toast.success("Student added successfully");
+      setShowAddStudent(false);
+      setStudentForm({
+        fullName: "",
+        mobile: "",
+        gender: "male",
+        collegeName: "",
+        universityName: "",
+        course: "",
+        semester: "",
+        serviceType: "prepaid",
+        sellingPrice: "",
+      });
+      refetch();
+    } catch (err) {
+      const message = isAxiosError(err) ? err.response?.data?.message : null;
+      toast.error(message ?? "Could not add student");
+    } finally {
+      setIsAddingStudent(false);
+    }
+  };
+
+  // V6 NEW: Partner Notes handlers
+  const handleAddNote = async () => {
+    if (!newNote.trim() || !id) return;
+    setIsAddingNote(true);
+    try {
+      await partnerService.addNote(id, newNote.trim());
+      toast.success("Note added");
+      setNewNote("");
+      refetch();
+    } catch (err) {
+      const message = isAxiosError(err) ? err.response?.data?.message : null;
+      toast.error(message ?? "Could not add note");
+    } finally {
+      setIsAddingNote(false);
+    }
+  };
+
+  const handleSaveEditNote = async () => {
+    if (!editingNoteId || !id) return;
+    if (!editingNoteText.trim()) {
+      toast.error("Note cannot be empty");
+      return;
+    }
+    setIsSavingNote(true);
+    try {
+      await partnerService.updateNote(id, editingNoteId, editingNoteText.trim());
+      toast.success("Note updated");
+      setEditingNoteId(null);
+      setEditingNoteText("");
+      refetch();
+    } catch (err) {
+      const message = isAxiosError(err) ? err.response?.data?.message : null;
+      toast.error(message ?? "Could not update note");
+    } finally {
+      setIsSavingNote(false);
+    }
+  };
+
+  const handleDeleteNote = async () => {
+    if (!deletingNoteId || !id) return;
+    setIsDeletingNote(true);
+    try {
+      await partnerService.deleteNote(id, deletingNoteId);
+      toast.success("Note deleted");
+      setDeletingNoteId(null);
+      refetch();
+    } catch (err) {
+      const message = isAxiosError(err) ? err.response?.data?.message : null;
+      toast.error(message ?? "Could not delete note");
+    } finally {
+      setIsDeletingNote(false);
+    }
+  };
+
+  const hasPendingCommissions = commissions?.some((c) => c.status === "pending") ?? false;
 
   return (
     <div className="space-y-6 p-6">
@@ -155,6 +311,9 @@ export default function ReferralPartnerProfilePage() {
           </div>
           <div className="flex items-center gap-2">
             <QuickActions mobile={partner.mobile} whatsappMessage={`Hi ${partner.fullName}, `} />
+            <Button variant="gradient" size="sm" onClick={() => setShowAddStudent(true)}>
+              <Plus className="mr-1.5 h-3.5 w-3.5" /> Add Student
+            </Button>
             <Button
               variant="destructive"
               size="sm"
@@ -208,7 +367,7 @@ export default function ReferralPartnerProfilePage() {
         </Card>
       </div>
 
-      {/* V2 NEW: Pricing editor - only Super Admin sets what this partner PAYS per service type */}
+      {/* Pricing editor */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-1.5">
@@ -242,13 +401,17 @@ export default function ReferralPartnerProfilePage() {
         </CardContent>
       </Card>
 
-      {/* V3 NEW: Commissions list - shows exactly what's owed per student, with a Mark as Paid
-          action. This is the fix for the previously-missing pending->paid workflow. */}
+      {/* Commissions list */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-1.5">
             <Wallet className="h-3.5 w-3.5" /> Commissions
           </CardTitle>
+          {hasPendingCommissions && (
+            <Button variant="gradient" size="sm" onClick={handleMarkAllPaid} isLoading={isMarkingAll}>
+              <CheckCheck className="mr-1.5 h-3.5 w-3.5" /> Mark All as Paid
+            </Button>
+          )}
         </CardHeader>
         <CardContent className="pt-0">
           {commissionsLoading ? (
@@ -312,51 +475,123 @@ export default function ReferralPartnerProfilePage() {
         </CardContent>
       </Card>
 
-      {/* Student list */}
+      {/* Students list as CARDS */}
+      <div>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Students ({students.length})</h2>
+        </div>
+
+        {students.length === 0 ? (
+          <EmptyState icon={GraduationCap} title="No students yet" description="This partner hasn't added any students." />
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {students.map((student) => (
+              <Card key={student.id} className="transition-shadow hover:shadow-soft-md">
+                <CardContent className="p-5">
+                  <div className="mb-3 flex items-start justify-between">
+                    <div>
+                      <Link to={buildPath(ROUTES.STUDENT_DETAILS, { id: student.id })} className="font-medium text-foreground hover:text-primary">
+                        {student.fullName}
+                      </Link>
+                      <p className="text-xs text-muted-foreground">{student.collegeName}</p>
+                    </div>
+                    <StatusBadge status={student.status} />
+                  </div>
+                  <div className="mb-4 flex items-center gap-2 text-xs text-muted-foreground">
+                    <span className="capitalize">{student.serviceType} Service</span>
+                    <span>•</span>
+                    <span>{formatDate(student.createdAt)}</span>
+                  </div>
+                  <div className="flex items-center justify-between border-t border-border pt-3">
+                    <QuickActions mobile={student.mobile} whatsappMessage={`Hi ${student.fullName}, `} />
+                    <Button asChild variant="ghost" size="sm">
+                      <Link to={buildPath(ROUTES.STUDENT_DETAILS, { id: student.id })}>View Details</Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* V6 NEW: Partner Notes section */}
       <Card>
         <CardHeader>
-          <CardTitle>Students ({students.length})</CardTitle>
+          <CardTitle className="flex items-center gap-1.5">
+            <StickyNote className="h-3.5 w-3.5" /> Notes about {partner.fullName}
+          </CardTitle>
         </CardHeader>
-        <CardContent className="pt-0">
-          {students.length === 0 ? (
-            <EmptyState icon={GraduationCap} title="No students yet" description="This partner hasn't added any students." />
+        <CardContent className="space-y-4 pt-0">
+          <div className="space-y-2 rounded-lg border border-dashed border-border p-4">
+            <Label>Add New Note</Label>
+            <Textarea
+              value={newNote}
+              onChange={(e) => setNewNote(e.target.value)}
+              rows={3}
+              placeholder={`What did ${partner.fullName} say? e.g. "Spoke to 4 students yesterday about receipts"...`}
+            />
+            <Button
+              variant="gradient"
+              size="sm"
+              onClick={handleAddNote}
+              isLoading={isAddingNote}
+              disabled={!newNote.trim()}
+            >
+              <Plus className="mr-1.5 h-3.5 w-3.5" /> Add Note
+            </Button>
+          </div>
+
+          {!data.notes || data.notes.length === 0 ? (
+            <EmptyState
+              icon={StickyNote}
+              title="No notes yet"
+              description="Add your first note about this partner above."
+            />
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                    <th className="pb-2 font-medium">Name</th>
-                    <th className="pb-2 font-medium">College</th>
-                    <th className="pb-2 font-medium">Service Type</th>
-                    <th className="pb-2 font-medium">Status</th>
-                    <th className="pb-2 font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {students.map((student) => (
-                    <tr key={student.id} className="border-b border-border/60 last:border-0 hover:bg-accent/40">
-                      <td className="py-3">
-                        <Link to={buildPath(ROUTES.STUDENT_DETAILS, { id: student.id })} className="font-medium text-foreground hover:text-primary">
-                          {student.fullName}
-                        </Link>
-                      </td>
-                      <td className="py-3 text-muted-foreground">{student.collegeName}</td>
-                      <td className="py-3 capitalize text-muted-foreground">{student.serviceType}</td>
-                      <td className="py-3">
-                        <StatusBadge status={student.status} />
-                      </td>
-                      <td className="py-3">
-                        <QuickActions mobile={student.mobile} whatsappMessage={`Hi ${student.fullName}, `} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="space-y-3">
+              {data.notes.map((note) => (
+                <div key={note.id} className="rounded-lg border border-border bg-muted/30 p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm text-foreground whitespace-pre-wrap flex-1">
+                      {note.note}
+                    </p>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        title="Edit note"
+                        onClick={() => {
+                          setEditingNoteId(note.id);
+                          setEditingNoteText(note.note);
+                        }}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-danger hover:bg-danger/10"
+                        title="Delete note"
+                        onClick={() => setDeletingNoteId(note.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {formatDateTime(note.createdAt)} • {note.author?.fullName ?? "Unknown"}
+                    {note.updatedAt !== note.createdAt && " • edited"}
+                  </p>
+                </div>
+              ))}
             </div>
           )}
         </CardContent>
       </Card>
 
+      {/* Delete confirmation */}
       <ConfirmDialog
         open={isConfirmDeleteOpen}
         onOpenChange={setIsConfirmDeleteOpen}
@@ -370,6 +605,151 @@ export default function ReferralPartnerProfilePage() {
         variant="destructive"
         isLoading={isDeleting}
         onConfirm={handleDeletePartner}
+      />
+
+      {/* Add Student Modal */}
+      {showAddStudent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-lg rounded-xl bg-card p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Add Student for {partner.fullName}</h2>
+              <Button variant="ghost" size="icon" onClick={() => setShowAddStudent(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <form onSubmit={handleAddStudent} className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <FormInput
+                  label="Full Name"
+                  value={studentForm.fullName}
+                  onChange={(e) => setStudentForm({ ...studentForm, fullName: e.target.value })}
+                  placeholder="Student's full name"
+                  required
+                />
+                <FormInput
+                  label="Mobile"
+                  type="tel"
+                  maxLength={10}
+                  value={studentForm.mobile}
+                  onChange={(e) => setStudentForm({ ...studentForm, mobile: e.target.value })}
+                  placeholder="9876543210"
+                  required
+                />
+                <div className="space-y-1.5">
+                  <Label>Gender</Label>
+                  <Select value={studentForm.gender || ""} onValueChange={(v) => setStudentForm({ ...studentForm, gender: v })}>
+                    <SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="female">Female</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <SuggestionInput
+                  label="College Name"
+                  placeholder="Start typing college name..."
+                  value={studentForm.collegeName}
+                  onValueChange={(v) => setStudentForm({ ...studentForm, collegeName: v })}
+                  fetchSuggestions={(s) => studentService.getFieldSuggestions("college", s)}
+                  required
+                />
+
+                <SuggestionInput
+                  label="University Name (Optional)"
+                  placeholder="Start typing university name..."
+                  value={studentForm.universityName}
+                  onValueChange={(v) => setStudentForm({ ...studentForm, universityName: v })}
+                  fetchSuggestions={(s) => studentService.getFieldSuggestions("university", s)}
+                />
+
+                <SuggestionInput
+                  label="Course (Optional)"
+                  placeholder="Start typing course..."
+                  value={studentForm.course}
+                  onValueChange={(v) => setStudentForm({ ...studentForm, course: v })}
+                  fetchSuggestions={(s) => studentService.getFieldSuggestions("course", s)}
+                />
+
+                <SuggestionInput
+                  label="Semester (Optional)"
+                  placeholder="Start typing semester..."
+                  value={studentForm.semester}
+                  onValueChange={(v) => setStudentForm({ ...studentForm, semester: v })}
+                  fetchSuggestions={(s) => studentService.getFieldSuggestions("semester", s)}
+                />
+
+                <div className="space-y-1.5">
+                  <Label>Service Type</Label>
+                  <Select value={studentForm.serviceType || ""} onValueChange={(v) => setStudentForm({ ...studentForm, serviceType: v })}>
+                    <SelectTrigger><SelectValue placeholder="Select service type" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="prepaid">Prepaid Service</SelectItem>
+                      <SelectItem value="postpaid">Postpaid Service</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <FormInput
+                  label="Selling Price (₹) - Optional"
+                  type="number"
+                  value={studentForm.sellingPrice}
+                  onChange={(e) => setStudentForm({ ...studentForm, sellingPrice: e.target.value })}
+                  placeholder="Leave blank if not decided yet"
+                />
+              </div>
+              <Button type="submit" variant="gradient" className="w-full" isLoading={isAddingStudent}>
+                Add Student
+              </Button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Partner Note Modal */}
+      {editingNoteId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-xl bg-card p-6 shadow-2xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Edit Note</h2>
+              <Button variant="ghost" size="icon" onClick={() => setEditingNoteId(null)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label>Note</Label>
+                <Textarea
+                  value={editingNoteText}
+                  onChange={(e) => setEditingNoteText(e.target.value)}
+                  rows={5}
+                  placeholder="Enter note..."
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setEditingNoteId(null)}>
+                  Cancel
+                </Button>
+                <Button variant="gradient" className="flex-1" onClick={handleSaveEditNote} isLoading={isSavingNote}>
+                  Save Note
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Partner Note Confirmation */}
+      <ConfirmDialog
+        open={!!deletingNoteId}
+        onOpenChange={(open) => !open && setDeletingNoteId(null)}
+        title="Delete this note?"
+        description="This note will be permanently deleted. This action cannot be undone."
+        confirmLabel="Delete"
+        variant="destructive"
+        isLoading={isDeletingNote}
+        onConfirm={handleDeleteNote}
       />
     </div>
   );

@@ -1,41 +1,51 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { isAxiosError } from "axios";
+import { useEffect, useState } from "react";
 import { FileText, ArrowLeft } from "lucide-react";
-import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { FormInput } from "@/components/forms/FormInput";
+import { SuggestionInput } from "@/components/forms/SuggestionInput";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { studentService } from "@/services/student.service";
+import { partnerService } from "@/services/partner.service";
+import { useAuth } from "@/hooks/useAuth";
+import { ROLES } from "@/constants/roles.constant";
 import { ROUTES, buildPath } from "@/constants/routes.constant";
 
-// V2 UPGRADE: "plan" -> "serviceType" (Prepaid/Postpaid Service). MYSY fields removed entirely.
-// "sellingPrice" added - the Referral Partner enters what they're charging the student;
-// the buying (cost) price is looked up server-side from the partner's own rate, never entered here.
 const applyScholarshipSchema = z.object({
   fullName: z.string().trim().min(2, "Full name is too short"),
   mobile: z.string().trim().regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit mobile number"),
   gender: z.enum(["male", "female", "other"], { message: "Please select a gender" }),
   collegeName: z.string().trim().min(2, "College name is required"),
-  universityName: z.string().trim().min(2, "University name is required"),
-  course: z.string().trim().min(2, "Course is required"),
-  semester: z.string().trim().min(1, "Semester is required"),
+  universityName: z.string().trim().optional(),
+  course: z.string().trim().optional(),
+  semester: z.string().trim().optional(),
   serviceType: z.enum(["prepaid", "postpaid"], { message: "Please select a service type" }),
-  sellingPrice: z.coerce.number().positive("Selling price must be greater than 0"),
+  sellingPrice: z.union([z.coerce.number().positive(), z.literal(""), z.undefined()]).optional(),
+  referralPartnerId: z.string().optional(),
 });
 type ApplyScholarshipFormValues = z.infer<typeof applyScholarshipSchema>;
 
-/** ApplyScholarshipPage - Referral Admin submits a new student application.
- * V2 UPGRADE: Document upload here is Aadhaar-only for Prepaid, Aadhaar + 12th Marksheet for
- * Postpaid. Hostel Receipt is NEVER uploaded here - per the new business workflow, Super Admin
- * uploads it separately, later, only after creating it offline. */
 export default function ApplyScholarshipPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === ROLES.SUPER_ADMIN;
+
+  const [partners, setPartners] = useState<{ id: string; fullName: string }[]>([]);
+
+  useEffect(() => {
+    if (!isSuperAdmin) return;
+    partnerService
+      .list({ page: 1, pageSize: 100, status: "active" })
+      .then((res) => setPartners(res.items.map((p) => ({ id: p.id, fullName: p.fullName }))))
+      .catch(() => setPartners([]));
+  }, [isSuperAdmin]);
 
   const {
     register,
@@ -48,10 +58,14 @@ export default function ApplyScholarshipPage() {
     defaultValues: {
       fullName: "",
       mobile: "",
+      gender: "" as any,
       collegeName: "",
       universityName: "",
       course: "",
       semester: "",
+      serviceType: "" as any,
+      sellingPrice: "",
+      referralPartnerId: "",
     },
   });
 
@@ -59,8 +73,33 @@ export default function ApplyScholarshipPage() {
 
   const onSubmit = async (values: ApplyScholarshipFormValues) => {
     try {
-      const student = await studentService.create(values);
-      toast.success("Application submitted! Now upload the required documents.");
+      if (isSuperAdmin && !values.referralPartnerId) {
+        toast.error("Please select a referral partner");
+        return;
+      }
+
+      const payload = { ...values };
+      if (!isSuperAdmin) delete payload.referralPartnerId;
+
+      const sellingPrice =
+        payload.sellingPrice === "" || payload.sellingPrice == null ? undefined : Number(payload.sellingPrice);
+
+      const student = await studentService.create(
+        {
+          fullName: payload.fullName,
+          mobile: payload.mobile,
+          gender: payload.gender,
+          collegeName: payload.collegeName,
+          universityName: payload.universityName,
+          course: payload.course,
+          semester: payload.semester,
+          serviceType: payload.serviceType,
+          sellingPrice,
+        },
+        isSuperAdmin ? payload.referralPartnerId : undefined
+      );
+
+      toast.success("Application submitted successfully!");
       navigate(buildPath(ROUTES.STUDENT_DETAILS, { id: student.id }));
     } catch (error) {
       const message = isAxiosError(error) ? error.response?.data?.message : null;
@@ -70,8 +109,8 @@ export default function ApplyScholarshipPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 p-4 sm:p-6">
-      <Link to={ROUTES.MY_STUDENTS} className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="h-3.5 w-3.5" /> Back to My Students
+      <Link to={isSuperAdmin ? ROUTES.STUDENTS : ROUTES.MY_STUDENTS} className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
+        <ArrowLeft className="h-3.5 w-3.5" /> Back to Students
       </Link>
 
       <div className="flex items-center gap-3">
@@ -87,6 +126,30 @@ export default function ApplyScholarshipPage() {
       <Card>
         <CardContent className="p-6">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+            {isSuperAdmin && (
+              <div className="space-y-1.5">
+                <Label>Referral Partner *</Label>
+                <Controller
+                  control={control}
+                  name="referralPartnerId"
+                  render={({ field }) => (
+                    <Select value={field.value || ""} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select referral partner" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {partners.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.fullName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+            )}
+
             <FormInput label="Full Name" placeholder="Student's full name" error={errors.fullName?.message} {...register("fullName")} />
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -97,7 +160,7 @@ export default function ApplyScholarshipPage() {
                   control={control}
                   name="gender"
                   render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select value={field.value || ""} onValueChange={field.onChange}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select gender" />
                       </SelectTrigger>
@@ -113,12 +176,67 @@ export default function ApplyScholarshipPage() {
               </div>
             </div>
 
-            <FormInput label="College Name" placeholder="e.g. Government Engineering College" error={errors.collegeName?.message} {...register("collegeName")} />
-            <FormInput label="University Name" placeholder="e.g. Gujarat Technological University" error={errors.universityName?.message} {...register("universityName")} />
+            <Controller
+              control={control}
+              name="collegeName"
+              render={({ field }) => (
+                <SuggestionInput
+                  label="College Name"
+                  placeholder="Start typing college name..."
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  fetchSuggestions={(s) => studentService.getFieldSuggestions("college", s)}
+                  error={errors.collegeName?.message}
+                  required
+                />
+              )}
+            />
+
+            <Controller
+              control={control}
+              name="universityName"
+              render={({ field }) => (
+                <SuggestionInput
+                  label="University Name (Optional)"
+                  placeholder="Start typing university name..."
+                  value={field.value ?? ""}
+                  onValueChange={field.onChange}
+                  fetchSuggestions={(s) => studentService.getFieldSuggestions("university", s)}
+                  error={errors.universityName?.message}
+                />
+              )}
+            />
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <FormInput label="Course" placeholder="e.g. B.Tech Computer Engineering" error={errors.course?.message} {...register("course")} />
-              <FormInput label="Semester" placeholder="e.g. 5th Semester" error={errors.semester?.message} {...register("semester")} />
+              <Controller
+                control={control}
+                name="course"
+                render={({ field }) => (
+                  <SuggestionInput
+                    label="Course (Optional)"
+                    placeholder="Start typing course..."
+                    value={field.value ?? ""}
+                    onValueChange={field.onChange}
+                    fetchSuggestions={(s) => studentService.getFieldSuggestions("course", s)}
+                    error={errors.course?.message}
+                  />
+                )}
+              />
+
+              <Controller
+                control={control}
+                name="semester"
+                render={({ field }) => (
+                  <SuggestionInput
+                    label="Semester (Optional)"
+                    placeholder="Start typing semester..."
+                    value={field.value ?? ""}
+                    onValueChange={field.onChange}
+                    fetchSuggestions={(s) => studentService.getFieldSuggestions("semester", s)}
+                    error={errors.semester?.message}
+                  />
+                )}
+              />
             </div>
 
             <div className="space-y-1.5">
@@ -127,7 +245,7 @@ export default function ApplyScholarshipPage() {
                 control={control}
                 name="serviceType"
                 render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
+                  <Select value={field.value || ""} onValueChange={field.onChange}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select a service type" />
                     </SelectTrigger>
@@ -150,15 +268,15 @@ export default function ApplyScholarshipPage() {
                     and <span className="font-medium text-foreground">12th Marksheet</span>
                   </>
                 )}{" "}
-                after submitting this form. Hostel Receipt is uploaded separately by the admin once the physical receipt is ready.
+                after submitting this form.
               </div>
             )}
 
             <FormInput
-              label="Selling Price (₹)"
+              label="Selling Price (₹) - Optional"
               type="number"
-              placeholder="e.g. 6000"
-              error={errors.sellingPrice?.message}
+              placeholder="Leave blank if not decided yet"
+              error={errors.sellingPrice?.message as string | undefined}
               {...register("sellingPrice")}
             />
 

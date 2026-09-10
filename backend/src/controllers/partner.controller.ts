@@ -130,4 +130,60 @@ export const partnerController = {
 
     ApiResponse.ok(res, commission, `Commission marked as ${status} successfully`);
   }),
+
+    /** V4 NEW: Mark all pending commissions as paid for this partner. */
+  markAllCommissionsPaid: asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) throw ApiError.unauthorized();
+    const { id } = req.params;
+
+    const result = await partnerService.markAllCommissionsPaid(id as string);
+
+    await activityLogService.logActivity(req, {
+      userId: req.user.id,
+      action: "ALL_COMMISSIONS_MARKED_PAID",
+      details: { partnerId: id, count: result.count },
+    });
+
+    ApiResponse.ok(res, result, `Marked ${result.count} commission(s) as paid`);
+  }),
+    /** V6 NEW: Add a partner note (Super Admin only) */
+  addNote: asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) throw ApiError.unauthorized();
+    const entry = await partnerService.addPartnerNote(req.params.id as string, req.body.note, req.user);
+    await activityLogService.logActivity(req, {
+      userId: req.user.id,
+      action: "PARTNER_NOTE_ADDED",
+      details: { partnerId: req.params.id, noteId: entry.id },
+    });
+    ApiResponse.created(res, entry, "Note added successfully");
+  }),
+
+  /** V6 NEW: Update a partner note */
+  updateNote: asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) throw ApiError.unauthorized();
+    const entry = await partnerService.updatePartnerNote(
+      req.params.id as string,
+      req.params.noteId as string,
+      req.body.note,
+      req.user
+    );
+    await activityLogService.logActivity(req, {
+      userId: req.user.id,
+      action: "PARTNER_NOTE_UPDATED",
+      details: { partnerId: req.params.id, noteId: entry.id },
+    });
+    ApiResponse.ok(res, entry, "Note updated successfully");
+  }),
+
+  /** V6 NEW: Delete a partner note */
+  deleteNote: asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) throw ApiError.unauthorized();
+    await partnerService.deletePartnerNote(req.params.id as string, req.params.noteId as string, req.user);
+    await activityLogService.logActivity(req, {
+      userId: req.user.id,
+      action: "PARTNER_NOTE_DELETED",
+      details: { partnerId: req.params.id, noteId: req.params.noteId },
+    });
+    ApiResponse.ok(res, null, "Note deleted successfully");
+  }),
 };

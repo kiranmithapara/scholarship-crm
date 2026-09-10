@@ -7,6 +7,7 @@ import studentRoutes from "./student.routes";
 import userRoutes from "./user.routes";
 import settingsRoutes from "./settings.routes";
 import logsRoutes from "./logs.routes";
+import adminNoteRoutes from "./adminNote.routes";
 
 const router = Router();
 
@@ -18,5 +19,6 @@ router.use("/students", studentRoutes);
 router.use("/users", userRoutes);
 router.use("/settings", settingsRoutes);
 router.use("/logs", logsRoutes);
+router.use("/admin-notes", adminNoteRoutes);
 
 export default router;

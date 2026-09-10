@@ -5,29 +5,32 @@ import { env } from "./env.config";
 
 /**
  * Winston logger - structured logging across the app.
- * - Console: human-readable, colorized (dev friendly)
- * - Files: JSON, daily-rotated, split into combined + error-only (for log aggregation tools later)
+ * Console: level-only colorized (info=green, warn=yellow, error=red),
+ * message and timestamp remain plain text (no color).
+ * Files: JSON, daily-rotated, split into combined + error-only.
  */
-const logFormat = winston.format.combine(
+
+const fileFormat = winston.format.combine(
   winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
   winston.format.errors({ stack: true }),
   winston.format.json()
 );
 
 const consoleFormat = winston.format.combine(
-  winston.format.colorize(),
-  winston.format.timestamp({ format: "HH:mm:ss" }),
+  // Only the level label gets colored, not the entire message
+  winston.format.colorize({ level: true }),
+  winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
   winston.format.printf(({ timestamp, level, message, ...meta }) => {
     const metaStr = Object.keys(meta).length ? JSON.stringify(meta) : "";
-    return `[${timestamp}] ${level}: ${message} ${metaStr}`;
+    return `${timestamp} [${level}]: ${message} ${metaStr}`;
   })
 );
 
 const logsDir = path.join(process.cwd(), "logs");
 
 export const logger = winston.createLogger({
-  level: env.isProduction ? "info" : "debug",
-  format: logFormat,
+  level: env.isProduction ? "info" : "info",
+  format: fileFormat,
   defaultMeta: { service: "scholarship-crm-backend" },
   transports: [
     new DailyRotateFile({
@@ -36,6 +39,7 @@ export const logger = winston.createLogger({
       datePattern: "YYYY-MM-DD",
       maxSize: "20m",
       maxFiles: "14d",
+      format: fileFormat,
     }),
     new DailyRotateFile({
       dirname: logsDir,
@@ -44,18 +48,13 @@ export const logger = winston.createLogger({
       level: "error",
       maxSize: "20m",
       maxFiles: "30d",
+      format: fileFormat,
     }),
   ],
 });
 
-// Console transport only in non-production (production relies on hosting provider's log capture)
-if (!env.isProduction) {
-  logger.add(new winston.transports.Console({ format: consoleFormat }));
-} else {
-  logger.add(new winston.transports.Console({ format: logFormat }));
-}
+logger.add(new winston.transports.Console({ format: consoleFormat }));
 
-/** Morgan HTTP logs stream into Winston at "http" level, keeping one unified log pipeline */
 export const morganStream = {
   write: (message: string) => logger.info(message.trim()),
 };

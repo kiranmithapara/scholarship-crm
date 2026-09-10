@@ -8,11 +8,9 @@ import { Commission } from "./Commission";
 import { LoginLog } from "./LoginLog";
 import { ActivityLog } from "./ActivityLog";
 import { Setting } from "./Setting";
-
-/**
- * ASSOCIATIONS - defined centrally here (not inside individual model files) so the full
- * relationship graph is visible in one place. Every association below matches DATABASE.md.
- */
+import { StudentNote } from "./StudentNote";
+import { AdminNote } from "./AdminNote";
+import { PartnerNote } from "./PartnerNote";
 
 // ---- User (Referral Admin) <-> Student ----
 User.hasMany(Student, { foreignKey: "referralPartnerId", as: "students" });
@@ -34,7 +32,23 @@ StudentTimeline.belongsTo(Student, { foreignKey: "studentId", as: "student" });
 User.hasMany(StudentTimeline, { foreignKey: "createdBy", as: "timelineEntries" });
 StudentTimeline.belongsTo(User, { foreignKey: "createdBy", as: "actor" });
 
-// ---- Commission: belongs to both a Referral Partner (User) and a Student ----
+// ---- Student <-> Internal Notes ----
+Student.hasMany(StudentNote, { foreignKey: "studentId", as: "notes" });
+StudentNote.belongsTo(Student, { foreignKey: "studentId", as: "student" });
+User.hasMany(StudentNote, { foreignKey: "createdBy", as: "studentNotes" });
+StudentNote.belongsTo(User, { foreignKey: "createdBy", as: "author" });
+
+// ---- V6 NEW: Partner Notes ----
+User.hasMany(PartnerNote, { foreignKey: "partnerId", as: "partnerNotes" });
+PartnerNote.belongsTo(User, { foreignKey: "partnerId", as: "partner" });
+User.hasMany(PartnerNote, { foreignKey: "createdBy", as: "authoredPartnerNotes" });
+PartnerNote.belongsTo(User, { foreignKey: "createdBy", as: "author" });
+
+// ---- User <-> Admin Notes (personal notepad) ----
+User.hasMany(AdminNote, { foreignKey: "userId", as: "adminNotes" });
+AdminNote.belongsTo(User, { foreignKey: "userId", as: "owner" });
+
+// ---- Commission ----
 User.hasMany(Commission, { foreignKey: "referralPartnerId", as: "commissions" });
 Commission.belongsTo(User, { foreignKey: "referralPartnerId", as: "referralPartner" });
 Student.hasOne(Commission, { foreignKey: "studentId", as: "commission" });
@@ -47,4 +61,18 @@ LoginLog.belongsTo(User, { foreignKey: "userId", as: "user" });
 User.hasMany(ActivityLog, { foreignKey: "userId", as: "activityLogs" });
 ActivityLog.belongsTo(User, { foreignKey: "userId", as: "user" });
 
-export { User, Otp, Student, StudentDocument, Payment, StudentTimeline, Commission, LoginLog, ActivityLog, Setting };
+export {
+  User,
+  Otp,
+  Student,
+  StudentDocument,
+  Payment,
+  StudentTimeline,
+  Commission,
+  LoginLog,
+  ActivityLog,
+  Setting,
+  StudentNote,
+  AdminNote,
+  PartnerNote,
+};
