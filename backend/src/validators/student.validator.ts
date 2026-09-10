@@ -18,7 +18,7 @@ export const createStudentSchema = z.object({
 export const listStudentsSchema = z.object({
   query: z.object({
     page: z.coerce.number().int().min(1).optional().default(1),
-    pageSize: z.coerce.number().int().min(1).max(100).optional().default(10),
+    pageSize: z.coerce.number().int().min(1).max(1000).optional().default(10),
     search: z.string().trim().optional(),
     serviceType: z.enum(["prepaid", "postpaid", "all"]).optional().default("all"),
     status: z.enum(["pending", "verified", "completed", "correction_requested", "all"]).optional().default("all"),
