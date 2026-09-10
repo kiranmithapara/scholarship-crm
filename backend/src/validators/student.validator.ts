@@ -21,7 +21,7 @@ export const listStudentsSchema = z.object({
     pageSize: z.coerce.number().int().min(1).max(100).optional().default(10),
     search: z.string().trim().optional(),
     serviceType: z.enum(["prepaid", "postpaid", "all"]).optional().default("all"),
-    status: z.enum(["pending", "completed", "all"]).optional().default("all"),
+    status: z.enum(["pending", "verified", "completed", "correction_requested", "all"]).optional().default("all"),
     referralPartnerId: z.string().optional(),
   }),
 });

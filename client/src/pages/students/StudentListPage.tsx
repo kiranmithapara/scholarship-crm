@@ -39,7 +39,10 @@ export default function StudentListPage() {
     partnerService
       .list({ page: 1, pageSize: 100, status: "all" })
       .then((res) => {
-        setPartners(res.items.map((p) => ({ id: p.id, fullName: p.fullName })));
+        const sorted = res.items
+          .map((p) => ({ id: p.id, fullName: p.fullName }))
+          .sort((a, b) => a.fullName.localeCompare(b.fullName));
+        setPartners(sorted);
       })
       .catch(() => setPartners([]));
   }, []);
