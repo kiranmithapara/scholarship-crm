@@ -7,12 +7,12 @@ import { toast } from "sonner";
 import { isAxiosError } from "axios";
 import { AuthLayout } from "@/layouts/AuthLayout";
 import { FormInput } from "@/components/forms/FormInput";
+import { PhoneInput } from "@/components/forms/PhoneInput";
 import { Button } from "@/components/ui/button";
 import { authService } from "@/services/auth.service";
 import { registerSchema, type RegisterFormValues } from "@/utils/validation.schemas";
 import { ROUTES } from "@/constants/routes.constant";
 
-/** RegisterPage - Page 2. Full Name, Mobile, Email, Username, Password, Confirm Password -> Email OTP. */
 export default function RegisterPage() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
@@ -48,14 +48,7 @@ export default function RegisterPage() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
         <FormInput label="Full Name" placeholder="Ramesh Patel" error={errors.fullName?.message} {...register("fullName")} />
 
-        <FormInput
-          label="Mobile Number"
-          type="tel"
-          placeholder="9876543210"
-          maxLength={10}
-          error={errors.mobile?.message}
-          {...register("mobile")}
-        />
+        <PhoneInput label="Mobile Number" placeholder="9876543210" error={errors.mobile?.message} {...register("mobile")} />
 
         <FormInput label="Email" type="email" placeholder="you@example.com" error={errors.email?.message} {...register("email")} />
 
@@ -80,12 +73,7 @@ export default function RegisterPage() {
           placeholder="••••••••"
           error={errors.confirmPassword?.message}
           rightElement={
-            <button
-              type="button"
-              onClick={() => setShowConfirmPassword((s) => !s)}
-              className="text-muted-foreground hover:text-foreground"
-              tabIndex={-1}
-            >
+            <button type="button" onClick={() => setShowConfirmPassword((s) => !s)} className="text-muted-foreground hover:text-foreground" tabIndex={-1}>
               {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           }

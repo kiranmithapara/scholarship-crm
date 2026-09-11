@@ -13,6 +13,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { FormInput } from "@/components/forms/FormInput";
+import { PhoneInput } from "@/components/forms/PhoneInput";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getInitials } from "@/lib/utils";
@@ -114,21 +115,11 @@ export function EditPartnerDialog({ partner, open, onOpenChange, onSuccess }: Ed
       formData.append("fullName", values.fullName);
       formData.append("email", values.email);
       formData.append("mobile", values.mobile);
-      if (values.username && values.username.trim()) {
-        formData.append("username", values.username.trim());
-      }
-      if (values.password && values.password.trim()) {
-        formData.append("password", values.password.trim());
-      }
-      if (values.prepaidCost !== undefined) {
-        formData.append("prepaidCost", values.prepaidCost);
-      }
-      if (values.postpaidCost !== undefined) {
-        formData.append("postpaidCost", values.postpaidCost);
-      }
-      if (selectedFile) {
-        formData.append("file", selectedFile);
-      }
+      if (values.username && values.username.trim()) formData.append("username", values.username.trim());
+      if (values.password && values.password.trim()) formData.append("password", values.password.trim());
+      if (values.prepaidCost !== undefined) formData.append("prepaidCost", values.prepaidCost);
+      if (values.postpaidCost !== undefined) formData.append("postpaidCost", values.postpaidCost);
+      if (selectedFile) formData.append("file", selectedFile);
 
       await partnerService.update(partner.id, formData);
       toast.success("Referral partner updated successfully");
@@ -155,7 +146,6 @@ export function EditPartnerDialog({ partner, open, onOpenChange, onSuccess }: Ed
         </DialogHeader>
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-2" noValidate>
-          {/* Profile Photo */}
           <div className="flex flex-col items-center justify-center gap-2 pb-2">
             <div className="relative">
               <Avatar className="h-20 w-20">
@@ -190,10 +180,8 @@ export function EditPartnerDialog({ partner, open, onOpenChange, onSuccess }: Ed
               error={form.formState.errors.fullName?.message}
               {...form.register("fullName")}
             />
-            <FormInput
+            <PhoneInput
               label="Mobile Number"
-              type="tel"
-              maxLength={10}
               placeholder="10-digit mobile"
               error={form.formState.errors.mobile?.message}
               {...form.register("mobile")}

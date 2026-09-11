@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { FileText, ArrowLeft } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { FormInput } from "@/components/forms/FormInput";
+import { PhoneInput } from "@/components/forms/PhoneInput";
 import { SuggestionInput } from "@/components/forms/SuggestionInput";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -153,7 +154,7 @@ export default function ApplyScholarshipPage() {
             <FormInput label="Full Name" placeholder="Student's full name" error={errors.fullName?.message} {...register("fullName")} />
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <FormInput label="Mobile Number" type="tel" maxLength={10} placeholder="9876543210" error={errors.mobile?.message} {...register("mobile")} />
+              <PhoneInput label="Mobile Number" placeholder="9876543210" error={errors.mobile?.message} {...register("mobile")} />
               <div className="space-y-1.5">
                 <Label>Gender</Label>
                 <Controller

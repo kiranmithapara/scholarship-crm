@@ -13,6 +13,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { FormInput } from "@/components/forms/FormInput";
+import { PhoneInput } from "@/components/forms/PhoneInput";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getInitials } from "@/lib/utils";
@@ -99,15 +100,9 @@ export function CreatePartnerDialog({ open, onOpenChange, onSuccess }: CreatePar
       formData.append("mobile", values.mobile);
       formData.append("username", values.username);
       formData.append("password", values.password);
-      if (values.prepaidCost) {
-        formData.append("prepaidCost", values.prepaidCost);
-      }
-      if (values.postpaidCost) {
-        formData.append("postpaidCost", values.postpaidCost);
-      }
-      if (selectedFile) {
-        formData.append("file", selectedFile);
-      }
+      if (values.prepaidCost) formData.append("prepaidCost", values.prepaidCost);
+      if (values.postpaidCost) formData.append("postpaidCost", values.postpaidCost);
+      if (selectedFile) formData.append("file", selectedFile);
 
       await partnerService.create(formData);
       toast.success("Referral partner created successfully");
@@ -134,7 +129,6 @@ export function CreatePartnerDialog({ open, onOpenChange, onSuccess }: CreatePar
         </DialogHeader>
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-2" noValidate>
-          {/* Profile Photo */}
           <div className="flex flex-col items-center justify-center gap-2 pb-2">
             <div className="relative">
               <Avatar className="h-20 w-20">
@@ -169,10 +163,8 @@ export function CreatePartnerDialog({ open, onOpenChange, onSuccess }: CreatePar
               error={form.formState.errors.fullName?.message}
               {...form.register("fullName")}
             />
-            <FormInput
+            <PhoneInput
               label="Mobile Number"
-              type="tel"
-              maxLength={10}
               placeholder="10-digit mobile"
               error={form.formState.errors.mobile?.message}
               {...form.register("mobile")}

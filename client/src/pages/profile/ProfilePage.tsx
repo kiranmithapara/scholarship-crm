@@ -8,6 +8,7 @@ import { Camera, KeyRound, Eye, EyeOff, ShieldAlert } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { FormInput } from "@/components/forms/FormInput";
+import { PhoneInput } from "@/components/forms/PhoneInput";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { userService } from "@/services/user.service";
@@ -38,7 +39,6 @@ const passwordSchema = z
   });
 type PasswordFormValues = z.infer<typeof passwordSchema>;
 
-/** ProfilePage - Page 10. Photo, Name, Email, Mobile, Username, Edit + Change Password. */
 export default function ProfilePage() {
   const { user, setUser } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -147,7 +147,6 @@ export default function ProfilePage() {
         <p className="mt-1 text-sm text-muted-foreground">Manage your account details and security settings.</p>
       </div>
 
-      {/* Photo + basic info */}
       <Card>
         <CardContent className="flex items-center gap-4 p-6">
           <div className="relative">
@@ -173,7 +172,6 @@ export default function ProfilePage() {
         </CardContent>
       </Card>
 
-      {/* Edit profile */}
       <Card>
         <CardHeader>
           <CardTitle>Edit Details</CardTitle>
@@ -181,7 +179,7 @@ export default function ProfilePage() {
         <CardContent className="pt-0">
           <form onSubmit={profileForm.handleSubmit(onSaveProfile)} className="space-y-4" noValidate>
             <FormInput label="Full Name" error={profileForm.formState.errors.fullName?.message} {...profileForm.register("fullName")} />
-            
+
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormInput
                 label="Email Address"
@@ -189,10 +187,8 @@ export default function ProfilePage() {
                 error={profileForm.formState.errors.email?.message}
                 {...profileForm.register("email")}
               />
-              <FormInput
+              <PhoneInput
                 label="Mobile Number"
-                type="tel"
-                maxLength={10}
                 error={profileForm.formState.errors.mobile?.message}
                 {...profileForm.register("mobile")}
               />
@@ -234,7 +230,6 @@ export default function ProfilePage() {
         </CardContent>
       </Card>
 
-      {/* Change password */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-1.5">

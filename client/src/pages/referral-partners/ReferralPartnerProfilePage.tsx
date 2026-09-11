@@ -31,6 +31,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { FormInput } from "@/components/forms/FormInput";
+import { PhoneInput } from "@/components/forms/PhoneInput";
 import { SuggestionInput } from "@/components/forms/SuggestionInput";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { EditPartnerDialog } from "@/components/partners/EditPartnerDialog";
@@ -71,7 +72,7 @@ export default function ReferralPartnerProfilePage() {
   });
   const [isAddingStudent, setIsAddingStudent] = useState(false);
 
-  // V6 NEW: Partner Notes state
+  // Partner Notes state
   const [newNote, setNewNote] = useState("");
   const [isAddingNote, setIsAddingNote] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
@@ -215,7 +216,7 @@ export default function ReferralPartnerProfilePage() {
     }
   };
 
-  // V6 NEW: Partner Notes handlers
+  // Partner Notes handlers
   const handleAddNote = async () => {
     if (!newNote.trim() || !id) return;
     setIsAddingNote(true);
@@ -495,7 +496,7 @@ export default function ReferralPartnerProfilePage() {
         )}
       </div>
 
-      {/* V6 NEW: Partner Notes section */}
+      {/* Partner Notes section */}
       <Card>
         <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
           <CardTitle className="text-base sm:text-lg flex items-center gap-1.5">
@@ -592,10 +593,8 @@ export default function ReferralPartnerProfilePage() {
                   placeholder="Student's full name"
                   required
                 />
-                <FormInput
+                <PhoneInput
                   label="Mobile"
-                  type="tel"
-                  maxLength={10}
                   value={studentForm.mobile}
                   onChange={(e) => setStudentForm({ ...studentForm, mobile: e.target.value })}
                   placeholder="9876543210"
