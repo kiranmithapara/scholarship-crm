@@ -97,7 +97,7 @@ export default function DashboardPage() {
   const cards = data?.cards;
 
   return (
-    <div className="space-y-6 p-4 sm:p-6">
+    <div className="space-y-6 p-3 sm:p-6 max-w-full overflow-x-hidden">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
@@ -120,12 +120,14 @@ export default function DashboardPage() {
           <StatCard label="Referral Partners" value={cards?.totalReferralPartners ?? 0} icon={Users} isLoading={isLoading} tone="primary" />
         )}
         <StatCard label={isSuperAdmin ? "Total Students" : "My Students"} value={cards?.totalStudents ?? 0} icon={GraduationCap} isLoading={isLoading} tone="primary" />
-        <StatCard label="Prepaid Service" value={cards?.prepaidCount ?? 0} icon={Wallet} isLoading={isLoading} tone="primary" />
-        <StatCard label="Postpaid Service" value={cards?.postpaidCount ?? 0} icon={Wallet2} isLoading={isLoading} tone="primary" />
+        <StatCard label="Prepaid Applications" value={cards?.prepaidCount ?? 0} icon={Wallet} isLoading={isLoading} tone="primary" />
+        <StatCard label="Postpaid Applications" value={cards?.postpaidCount ?? 0} icon={Wallet2} isLoading={isLoading} tone="primary" />
         <StatCard label="Pending Applications" value={cards?.pendingCount ?? 0} icon={Clock} isLoading={isLoading} tone="warning" />
-        <StatCard label="Completed" value={cards?.completedCount ?? 0} icon={CheckCircle2} isLoading={isLoading} tone="success" />
-        <StatCard label="Commission (Pending)" value={cards?.commission.pending ?? 0} icon={Wallet} isLoading={isLoading} tone="warning" prefix="₹" />
-        <StatCard label="Commission (Paid)" value={cards?.commission.paid ?? 0} icon={Wallet2} isLoading={isLoading} tone="success" prefix="₹" />
+        <StatCard label="Completed Applications" value={cards?.completedCount ?? 0} icon={CheckCircle2} isLoading={isLoading} tone="success" />
+        <StatCard label="Postpaid Commission" value={cards?.postpaidCommission?.total ?? 0} icon={Wallet2} isLoading={isLoading} tone="primary" prefix="₹" />
+        <StatCard label="Prepaid Commission" value={cards?.prepaidCommission?.total ?? 0} icon={Wallet} isLoading={isLoading} tone="primary" prefix="₹" />
+        <StatCard label="Commission (Pending)" value={cards?.commission.pending ?? 0} icon={Clock} isLoading={isLoading} tone="warning" prefix="₹" />
+        <StatCard label="Commission (Paid)" value={cards?.commission.paid ?? 0} icon={CheckCircle2} isLoading={isLoading} tone="success" prefix="₹" />
         {isSuperAdmin && (
           <>
             <StatCard label="My Revenue (Pending)" value={cards?.adminRevenue.pending ?? 0} icon={IndianRupee} isLoading={isLoading} tone="warning" prefix="₹" />
@@ -152,7 +154,7 @@ export default function DashboardPage() {
                 Revenue breakdown across referral partners.
               </p>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
               <Select value={period} onValueChange={setPeriod}>
                 <SelectTrigger className="w-full sm:w-36">
                   <SelectValue placeholder="Period" />
@@ -186,12 +188,12 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <Card>
                 <CardContent className="flex items-center gap-3 p-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning/10 text-warning">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning/10 text-warning shrink-0">
                     <Clock className="h-5 w-5" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Pending Revenue</p>
-                    <p className="text-lg font-semibold text-foreground">
+                    <p className="text-lg font-semibold text-foreground truncate">
                       {formatCurrency(receiptsData.totals.pendingRevenue)}
                     </p>
                   </div>
@@ -199,12 +201,12 @@ export default function DashboardPage() {
               </Card>
               <Card>
                 <CardContent className="flex items-center gap-3 p-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-success/10 text-success">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-success/10 text-success shrink-0">
                     <CheckCircle2 className="h-5 w-5" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Paid Revenue</p>
-                    <p className="text-lg font-semibold text-foreground">
+                    <p className="text-lg font-semibold text-foreground truncate">
                       {formatCurrency(receiptsData.totals.paidRevenue)}
                     </p>
                   </div>
@@ -212,12 +214,12 @@ export default function DashboardPage() {
               </Card>
               <Card>
                 <CardContent className="flex items-center gap-3 p-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-50 text-primary">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-50 text-primary shrink-0">
                     <IndianRupee className="h-5 w-5" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Total Revenue</p>
-                    <p className="text-lg font-semibold text-foreground">
+                    <p className="text-lg font-semibold text-foreground truncate">
                       {formatCurrency(receiptsData.totals.totalRevenue)}
                     </p>
                   </div>
@@ -228,10 +230,10 @@ export default function DashboardPage() {
 
           {/* Bar chart + Paid donut */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 min-w-0">
               <PartnerReceiptsChart data={receiptsData?.items ?? []} isLoading={receiptsLoading} />
             </div>
-            <div className="lg:col-span-1">
+            <div className="lg:col-span-1 min-w-0">
               <RevenueDonutChart
                 title="Paid Revenue Split"
                 items={(receiptsData?.items ?? []).map((p) => ({
@@ -252,30 +254,34 @@ export default function DashboardPage() {
 
           {/* Pending donut + Postpaid applications donut */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <RevenueDonutChart
-              title="Pending Revenue Split"
-              items={(receiptsData?.items ?? []).map((p) => ({
-                name: p.partnerName,
-                value: p.pendingRevenue,
-              }))}
-              total={receiptsData?.totals.pendingRevenue ?? 0}
-              totalLabel="Total Pending"
-              emptyTitle="No pending revenue"
-              emptyDescription="Pending prepaid receipts will appear here."
-              palette={AMBER_PALETTE}
-              isLoading={receiptsLoading}
-            />
-            <PostpaidApplicationsDonut data={receiptsData?.items ?? []} isLoading={receiptsLoading} />
+            <div className="min-w-0">
+              <RevenueDonutChart
+                title="Pending Revenue Split"
+                items={(receiptsData?.items ?? []).map((p) => ({
+                  name: p.partnerName,
+                  value: p.pendingRevenue,
+                }))}
+                total={receiptsData?.totals.pendingRevenue ?? 0}
+                totalLabel="Total Pending"
+                emptyTitle="No pending revenue"
+                emptyDescription="Pending prepaid receipts will appear here."
+                palette={AMBER_PALETTE}
+                isLoading={receiptsLoading}
+              />
+            </div>
+            <div className="min-w-0">
+              <PostpaidApplicationsDonut data={receiptsData?.items ?? []} isLoading={receiptsLoading} />
+            </div>
           </div>
         </motion.div>
       )}
 
       {/* Recent Students + Quick Actions */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 min-w-0">
           <RecentStudentsTable students={data?.recentStudents ?? []} isLoading={isLoading} />
         </div>
-        <div className="space-y-3 rounded-lg border border-border bg-card p-5 shadow-soft">
+        <div className="lg:col-span-1 min-w-0 space-y-3 rounded-lg border border-border bg-card p-5 shadow-soft">
           <h3 className="text-sm font-medium text-muted-foreground">Quick Actions</h3>
           {isSuperAdmin ? (
             <>
