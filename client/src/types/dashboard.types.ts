@@ -16,19 +16,31 @@ export interface DashboardCards {
   };
 }
 
-// V9 NEW: per-partner receipt summary (Super Admin only)
-export interface PartnerReceiptSummary {
+export interface PartnerReceiptItem {
   partnerId: string;
   partnerName: string;
   prepaidCount: number;
   postpaidCount: number;
   totalReceipts: number;
+  pendingRevenue: number;
+  paidRevenue: number;
   totalRevenue: number;
+  paidStudentsCount: number;
+}
+
+export interface PartnerReceiptsResponse {
+  items: PartnerReceiptItem[];
+  totals: {
+    totalReceipts: number;
+    pendingRevenue: number;
+    paidRevenue: number;
+    totalRevenue: number;
+    paidStudentsCount: number;
+  };
 }
 
 export interface DashboardStats {
   cards: DashboardCards;
-  partnerReceipts: PartnerReceiptSummary[];
   recentStudents: RecentStudent[];
 }
 

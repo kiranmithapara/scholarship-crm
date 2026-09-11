@@ -15,4 +15,15 @@ export const dashboardController = {
     const stats = await dashboardService.getStats({ id: "", role: "super_admin" });
     ApiResponse.ok(res, stats, "Dashboard stats fetched successfully");
   }),
+
+  // V9 NEW: partner-wise receipt summary with filters
+  getPartnerReceipts: asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) throw ApiError.unauthorized();
+    if (req.user.role !== "super_admin") {
+      throw ApiError.forbidden("Only Super Admin can view partner receipts");
+    }
+    const { period = "all", partnerId } = req.query as { period?: string; partnerId?: string };
+    const result = await dashboardService.getPartnerReceipts({ period, partnerId });
+    ApiResponse.ok(res, result, "Partner receipts fetched successfully");
+  }),
 };

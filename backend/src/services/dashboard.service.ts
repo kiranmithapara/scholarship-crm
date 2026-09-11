@@ -4,9 +4,7 @@ import { sequelize } from "@/config/database.config";
 
 export const dashboardService = {
   /**
-   * Role-aware Dashboard stats.
-   * - Super Admin: overall CRM stats + per-partner receipt summary
-   * - Referral Admin: stats scoped to their own students
+   * Role-aware Dashboard stats (cards + recent students).
    */
   getStats: async (user: { id: string; role: string }) => {
     const isSuperAdmin = user.role === "super_admin";
@@ -46,11 +44,7 @@ export const dashboardService = {
       }),
     ]);
 
-    // ============================================================
-    // Admin Revenue (Super Admin only)
-    // ============================================================
     let revenueRow: { pending: string; paid: string } = { pending: "0", paid: "0" };
-
     if (isSuperAdmin) {
       const revenueRows = await sequelize.query<{ pending: string; paid: string }>(
         `SELECT
@@ -62,53 +56,6 @@ export const dashboardService = {
         { type: QueryTypes.SELECT }
       );
       if (revenueRows.length > 0) revenueRow = revenueRows[0];
-    }
-
-    // ============================================================
-    // V9 NEW: Partner-wise receipt summary (Super Admin only)
-    // ============================================================
-    let partnerReceipts: Array<{
-      partnerId: string;
-      partnerName: string;
-      prepaidCount: number;
-      postpaidCount: number;
-      totalReceipts: number;
-      totalRevenue: number;
-    }> = [];
-
-    if (isSuperAdmin) {
-      const rows = await sequelize.query<{
-        partnerId: string;
-        partnerName: string;
-        prepaidCount: string;
-        postpaidCount: string;
-        totalReceipts: string;
-        totalRevenue: string;
-      }>(
-        `SELECT
-           u.id AS "partnerId",
-           u.full_name AS "partnerName",
-           COUNT(CASE WHEN s.service_type = 'prepaid' THEN 1 END) AS "prepaidCount",
-           COUNT(CASE WHEN s.service_type = 'postpaid' THEN 1 END) AS "postpaidCount",
-           COUNT(s.id) AS "totalReceipts",
-           COALESCE(SUM(s.buying_price), 0) AS "totalRevenue"
-         FROM users u
-         LEFT JOIN students s ON s.referral_partner_id = u.id AND s.deleted_at IS NULL
-         WHERE u.role = 'referral_admin'
-         GROUP BY u.id, u.full_name
-         HAVING COUNT(s.id) > 0
-         ORDER BY "totalRevenue" DESC;`,
-        { type: QueryTypes.SELECT }
-      );
-
-      partnerReceipts = rows.map((r) => ({
-        partnerId: r.partnerId,
-        partnerName: r.partnerName,
-        prepaidCount: Number(r.prepaidCount),
-        postpaidCount: Number(r.postpaidCount),
-        totalReceipts: Number(r.totalReceipts),
-        totalRevenue: Number(r.totalRevenue),
-      }));
     }
 
     const commissionRow = (commissionTotals[0] ?? { total: 0, pending: 0, paid: 0 }) as unknown as {
@@ -135,9 +82,88 @@ export const dashboardService = {
           paid: Number(revenueRow.paid ?? 0),
         },
       },
-      partnerReceipts,
       recentStudents: recentStudents.map((s) => s.toJSON()),
     };
+  },
+
+  /**
+   * V9 NEW: Partner-wise receipts with pending/paid breakdown, filterable by
+   * period (7d/30d/90d/all) and specific partner.
+   */
+  getPartnerReceipts: async (filters: { period: string; partnerId?: string }) => {
+    const { period, partnerId } = filters;
+
+    const replacements: Record<string, any> = {};
+    let dateCondition = "";
+    if (period === "7d") {
+      dateCondition = "AND s.created_at >= :dateFrom";
+      replacements.dateFrom = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    } else if (period === "30d") {
+      dateCondition = "AND s.created_at >= :dateFrom";
+      replacements.dateFrom = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    } else if (period === "90d") {
+      dateCondition = "AND s.created_at >= :dateFrom";
+      replacements.dateFrom = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    }
+
+    let partnerCondition = "";
+    if (partnerId && partnerId !== "all" && partnerId.trim() !== "") {
+      partnerCondition = "AND u.id = :partnerId";
+      replacements.partnerId = partnerId.trim();
+    }
+
+    const sql = `
+      SELECT
+        u.id AS "partnerId",
+        u.full_name AS "partnerName",
+        COUNT(DISTINCT s.id) AS "totalReceipts",
+        COUNT(DISTINCT CASE WHEN s.service_type = 'prepaid' THEN s.id END) AS "prepaidCount",
+        COUNT(DISTINCT CASE WHEN s.service_type = 'postpaid' THEN s.id END) AS "postpaidCount",
+        COALESCE(SUM(CASE WHEN c.status = 'pending' THEN s.buying_price ELSE 0 END), 0) AS "pendingRevenue",
+        COALESCE(SUM(CASE WHEN c.status = 'paid' THEN s.buying_price ELSE 0 END), 0) AS "paidRevenue",
+        COUNT(DISTINCT CASE WHEN c.status = 'paid' THEN s.id END) AS "paidStudentsCount"
+      FROM users u
+      INNER JOIN students s ON s.referral_partner_id = u.id AND s.deleted_at IS NULL
+      LEFT JOIN commissions c ON c.student_id = s.id
+      WHERE u.role = 'referral_admin' ${dateCondition} ${partnerCondition}
+      GROUP BY u.id, u.full_name
+      HAVING COUNT(s.id) > 0
+      ORDER BY "paidRevenue" DESC, "pendingRevenue" DESC;
+    `;
+
+    const rows = await sequelize.query<any>(sql, {
+      replacements,
+      type: QueryTypes.SELECT,
+    });
+
+    const items = rows.map((r) => {
+      const pending = Number(r.pendingRevenue);
+      const paid = Number(r.paidRevenue);
+      return {
+        partnerId: r.partnerId,
+        partnerName: r.partnerName,
+        prepaidCount: Number(r.prepaidCount),
+        postpaidCount: Number(r.postpaidCount),
+        totalReceipts: Number(r.totalReceipts),
+        pendingRevenue: pending,
+        paidRevenue: paid,
+        totalRevenue: pending + paid,
+        paidStudentsCount: Number(r.paidStudentsCount),
+      };
+    });
+
+    const totals = items.reduce(
+      (acc, r) => ({
+        totalReceipts: acc.totalReceipts + r.totalReceipts,
+        pendingRevenue: acc.pendingRevenue + r.pendingRevenue,
+        paidRevenue: acc.paidRevenue + r.paidRevenue,
+        totalRevenue: acc.totalRevenue + r.totalRevenue,
+        paidStudentsCount: acc.paidStudentsCount + r.paidStudentsCount,
+      }),
+      { totalReceipts: 0, pendingRevenue: 0, paidRevenue: 0, totalRevenue: 0, paidStudentsCount: 0 }
+    );
+
+    return { items, totals };
   },
 
   getSuperAdminStats: async () => {
