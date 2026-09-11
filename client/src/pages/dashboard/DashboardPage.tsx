@@ -1,7 +1,17 @@
-import { Users, GraduationCap, Wallet, Clock, CheckCircle2, Wallet2, FileText, UserCircle, IndianRupee } from "lucide-react";
+import {
+  Users,
+  GraduationCap,
+  Wallet,
+  Clock,
+  CheckCircle2,
+  Wallet2,
+  FileText,
+  UserCircle,
+  IndianRupee,
+} from "lucide-react";
 import { motion } from "framer-motion";
 import { StatCard } from "@/components/common/StatCard";
-import { MonthlyTrendChart } from "@/components/charts/MonthlyTrendChart";
+import { PartnerRevenueChart } from "@/components/charts/PartnerRevenueChart";
 import { RecentStudentsTable } from "@/components/tables/RecentStudentsTable";
 import { ErrorState } from "@/components/common/ErrorState";
 import { Button } from "@/components/ui/button";
@@ -31,7 +41,11 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6 p-4 sm:p-6">
       {/* Header */}
-      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
+      >
         <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">
           Welcome back, {user?.fullName.split(" ")[0]}
         </h1>
@@ -45,29 +59,91 @@ export default function DashboardPage() {
       {/* Stat Cards */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {isSuperAdmin && (
-          <StatCard label="Referral Partners" value={cards?.totalReferralPartners ?? 0} icon={Users} isLoading={isLoading} tone="primary" />
+          <StatCard
+            label="Referral Partners"
+            value={cards?.totalReferralPartners ?? 0}
+            icon={Users}
+            isLoading={isLoading}
+            tone="primary"
+          />
         )}
-        <StatCard label={isSuperAdmin ? "Total Students" : "My Students"} value={cards?.totalStudents ?? 0} icon={GraduationCap} isLoading={isLoading} tone="primary" />
-        <StatCard label="Prepaid Service" value={cards?.prepaidCount ?? 0} icon={Wallet} isLoading={isLoading} tone="primary" />
-        <StatCard label="Postpaid Service" value={cards?.postpaidCount ?? 0} icon={Wallet2} isLoading={isLoading} tone="primary" />
-        <StatCard label="Pending Applications" value={cards?.pendingCount ?? 0} icon={Clock} isLoading={isLoading} tone="warning" />
-        <StatCard label="Completed" value={cards?.completedCount ?? 0} icon={CheckCircle2} isLoading={isLoading} tone="success" />
-        <StatCard label="Commission (Pending)" value={cards?.commission.pending ?? 0} icon={Wallet} isLoading={isLoading} tone="warning" prefix="₹" />
-        <StatCard label="Commission (Paid)" value={cards?.commission.paid ?? 0} icon={Wallet2} isLoading={isLoading} tone="success" prefix="₹" />
-        {/* V4 NEW: Super Admin's own earning (buying price) - what YOU keep, separate from what the partner earns above */}
+        <StatCard
+          label={isSuperAdmin ? "Total Students" : "My Students"}
+          value={cards?.totalStudents ?? 0}
+          icon={GraduationCap}
+          isLoading={isLoading}
+          tone="primary"
+        />
+        <StatCard
+          label="Prepaid Service"
+          value={cards?.prepaidCount ?? 0}
+          icon={Wallet}
+          isLoading={isLoading}
+          tone="primary"
+        />
+        <StatCard
+          label="Postpaid Service"
+          value={cards?.postpaidCount ?? 0}
+          icon={Wallet2}
+          isLoading={isLoading}
+          tone="primary"
+        />
+        <StatCard
+          label="Pending Applications"
+          value={cards?.pendingCount ?? 0}
+          icon={Clock}
+          isLoading={isLoading}
+          tone="warning"
+        />
+        <StatCard
+          label="Completed"
+          value={cards?.completedCount ?? 0}
+          icon={CheckCircle2}
+          isLoading={isLoading}
+          tone="success"
+        />
+        <StatCard
+          label="Commission (Pending)"
+          value={cards?.commission.pending ?? 0}
+          icon={Wallet}
+          isLoading={isLoading}
+          tone="warning"
+          prefix="₹"
+        />
+        <StatCard
+          label="Commission (Paid)"
+          value={cards?.commission.paid ?? 0}
+          icon={Wallet2}
+          isLoading={isLoading}
+          tone="success"
+          prefix="₹"
+        />
         {isSuperAdmin && (
           <>
-            <StatCard label="My Revenue (Pending)" value={cards?.adminRevenue.pending ?? 0} icon={IndianRupee} isLoading={isLoading} tone="warning" prefix="₹" />
-            <StatCard label="My Revenue (Received)" value={cards?.adminRevenue.paid ?? 0} icon={IndianRupee} isLoading={isLoading} tone="success" prefix="₹" />
+            <StatCard
+              label="My Revenue (Pending)"
+              value={cards?.adminRevenue.pending ?? 0}
+              icon={IndianRupee}
+              isLoading={isLoading}
+              tone="warning"
+              prefix="₹"
+            />
+            <StatCard
+              label="My Revenue (Received)"
+              value={cards?.adminRevenue.paid ?? 0}
+              icon={IndianRupee}
+              isLoading={isLoading}
+              tone="success"
+              prefix="₹"
+            />
           </>
         )}
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <MonthlyTrendChart title="Monthly Students" data={data?.charts.monthlyStudents ?? []} isLoading={isLoading} colorVar="--primary" />
-        <MonthlyTrendChart title="Monthly Applications" data={data?.charts.monthlyApplications ?? []} isLoading={isLoading} colorVar="--success" />
-      </div>
+      {/* V9 NEW: Partner Revenue Chart (Super Admin only) */}
+      {isSuperAdmin && (
+        <PartnerRevenueChart data={data?.partnerReceipts ?? []} isLoading={isLoading} />
+      )}
 
       {/* Recent Students + Quick Actions */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -90,7 +166,8 @@ export default function DashboardPage() {
               </Button>
               <Button asChild variant="outline" className="w-full justify-start">
                 <Link to={ROUTES.SETTINGS}>
-                  <Wallet className="mr-2 h-4 w-4" /> Total Commission: {formatCurrency(cards?.commission.total ?? 0)}
+                  <Wallet className="mr-2 h-4 w-4" /> Total Commission:{" "}
+                  {formatCurrency(cards?.commission.total ?? 0)}
                 </Link>
               </Button>
             </>

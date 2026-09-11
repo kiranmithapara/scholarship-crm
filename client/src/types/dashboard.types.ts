@@ -1,7 +1,6 @@
 export interface DashboardCards {
   totalReferralPartners: number;
   totalStudents: number;
-  // V2 UPGRADE: plan2500Count/plan5000Count -> prepaidCount/postpaidCount
   prepaidCount: number;
   postpaidCount: number;
   pendingCount: number;
@@ -11,25 +10,25 @@ export interface DashboardCards {
     pending: number;
     paid: number;
   };
-  // V4 NEW: what the Super Admin personally keeps per application (buying price), separate
-  // from the `commission` figures above which are what the Referral Partner earns.
   adminRevenue: {
     pending: number;
     paid: number;
   };
 }
 
-export interface MonthlyDataPoint {
-  label: string;
-  count: number;
+// V9 NEW: per-partner receipt summary (Super Admin only)
+export interface PartnerReceiptSummary {
+  partnerId: string;
+  partnerName: string;
+  prepaidCount: number;
+  postpaidCount: number;
+  totalReceipts: number;
+  totalRevenue: number;
 }
 
 export interface DashboardStats {
   cards: DashboardCards;
-  charts: {
-    monthlyStudents: MonthlyDataPoint[];
-    monthlyApplications: MonthlyDataPoint[];
-  };
+  partnerReceipts: PartnerReceiptSummary[];
   recentStudents: RecentStudent[];
 }
 

@@ -2,26 +2,11 @@ import { Op, fn, col, literal } from "sequelize";
 import { Student, User, Commission } from "@/models";
 import { sequelize } from "@/config/database.config";
 
-/** Returns the last N months as { year, month, label } - used to build zero-filled chart series. */
-function getLastNMonths(n: number): { year: number; month: number; label: string }[] {
-  const months = [];
-  const now = new Date();
-  for (let i = n - 1; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    months.push({
-      year: d.getFullYear(),
-      month: d.getMonth() + 1,
-      label: d.toLocaleString("en-US", { month: "short" }),
-    });
-  }
-  return months;
-}
-
 export const dashboardService = {
   /**
-   * Role-aware Dashboard stats - Cards + Charts + Recent Students in one call.
-   * If user is Super Admin -> returns overall CRM stats.
-   * If user is Referral Admin -> returns stats scoped to their referrals.
+   * Role-aware Dashboard stats.
+   * - Super Admin: overall CRM stats + per-partner receipt summary
+   * - Referral Admin: stats scoped to their own students
    */
   getStats: async (user: { id: string; role: string }) => {
     const isSuperAdmin = user.role === "super_admin";
@@ -36,8 +21,6 @@ export const dashboardService = {
       pendingCount,
       completedCount,
       commissionTotals,
-      monthlyStudentsRaw,
-      monthlyApplicationsRaw,
       recentStudents,
     ] = await Promise.all([
       isSuperAdmin ? User.count({ where: { role: "referral_admin" } }) : Promise.resolve(0),
@@ -55,35 +38,6 @@ export const dashboardService = {
         ],
         raw: true,
       }),
-      // Students created per month, last 6 months
-      Student.findAll({
-        attributes: [
-          [fn("DATE_TRUNC", "month", col("created_at")), "month"],
-          [fn("COUNT", col("id")), "count"],
-        ],
-        where: {
-          ...studentWhere,
-          createdAt: { [Op.gte]: new Date(new Date().setMonth(new Date().getMonth() - 5, 1)) },
-        },
-        group: ["month"],
-        order: [[literal("month"), "ASC"]],
-        raw: true,
-      }),
-      // Applications (students) grouped by month + status=completed, last 6 months
-      Student.findAll({
-        attributes: [
-          [fn("DATE_TRUNC", "month", col("created_at")), "month"],
-          [fn("COUNT", col("id")), "count"],
-        ],
-        where: {
-          ...studentWhere,
-          status: "completed",
-          createdAt: { [Op.gte]: new Date(new Date().setMonth(new Date().getMonth() - 5, 1)) },
-        },
-        group: ["month"],
-        order: [[literal("month"), "ASC"]],
-        raw: true,
-      }),
       Student.findAll({
         where: studentWhere,
         limit: 8,
@@ -92,18 +46,7 @@ export const dashboardService = {
       }),
     ]);
 
-    /**
-     * V4 NEW: "Admin Revenue" - what the Super Admin personally keeps per application
-     * (student.buying_price, the amount the partner pays IN, as opposed to commission.amount
-     * which is the partner's own profit paid OUT). Example: a ₹2000 receipt where the partner's
-     * buying cost is ₹1500 means the partner earns ₹500 commission, and the admin keeps ₹1500 -
-     * these two figures always sum to the student's selling_price.
-     *
-     * Reuses the SAME commission.status flag ("pending"/"paid") as the partner commission -
-     * in this business, the partner pays the admin the buying price and the admin pays the
-     * partner their profit at the same reconciliation moment, so one "Mark as Paid" action
-     * settles both sides of the ledger simultaneously.
-     */
+    // Admin revenue (Super Admin only) — the buying_price portion kept by admin
     const revenueRow = isSuperAdmin
       ? await (async () => {
           const [rows] = await sequelize.query<{ pending: string; paid: string }>(
@@ -111,23 +54,58 @@ export const dashboardService = {
                COALESCE(SUM(CASE WHEN c.status = 'pending' THEN s.buying_price ELSE 0 END), 0) AS pending,
                COALESCE(SUM(CASE WHEN c.status = 'paid' THEN s.buying_price ELSE 0 END), 0) AS paid
              FROM commissions c
-             JOIN students s ON s.id = c.student_id;`,
+             JOIN students s ON s.id = c.student_id
+             WHERE s.deleted_at IS NULL;`,
             { type: "SELECT" as never }
           );
           return (Array.isArray(rows) ? rows[0] : rows) as unknown as { pending: string; paid: string } | undefined;
         })()
       : undefined;
 
-    // Zero-fill months that had no activity, so the chart never has gaps
-    const months = getLastNMonths(6);
-    const fillSeries = (raw: Array<{ month: string | Date; count: string | number }>) =>
-      months.map(({ year, month, label }) => {
-        const match = raw.find((r) => {
-          const d = new Date(r.month);
-          return d.getFullYear() === year && d.getMonth() + 1 === month;
-        });
-        return { label, count: match ? Number(match.count) : 0 };
-      });
+    // V9 NEW: Partner-wise receipt summary (Super Admin only)
+    let partnerReceipts: Array<{
+      partnerId: string;
+      partnerName: string;
+      prepaidCount: number;
+      postpaidCount: number;
+      totalReceipts: number;
+      totalRevenue: number;
+    }> = [];
+
+    if (isSuperAdmin) {
+      const [rows] = await sequelize.query<{
+        partnerId: string;
+        partnerName: string;
+        prepaidCount: string;
+        postpaidCount: string;
+        totalReceipts: string;
+        totalRevenue: string;
+      }>(
+        `SELECT
+           u.id AS "partnerId",
+           u.full_name AS "partnerName",
+           COUNT(CASE WHEN s.service_type = 'prepaid' THEN 1 END) AS "prepaidCount",
+           COUNT(CASE WHEN s.service_type = 'postpaid' THEN 1 END) AS "postpaidCount",
+           COUNT(s.id) AS "totalReceipts",
+           COALESCE(SUM(s.buying_price), 0) AS "totalRevenue"
+         FROM users u
+         LEFT JOIN students s ON s.referral_partner_id = u.id AND s.deleted_at IS NULL
+         WHERE u.role = 'referral_admin' AND u.deleted_at IS NULL
+         GROUP BY u.id, u.full_name
+         HAVING COUNT(s.id) > 0
+         ORDER BY "totalRevenue" DESC;`,
+        { type: "SELECT" as never }
+      );
+
+      partnerReceipts = (Array.isArray(rows) ? rows : []).map((r) => ({
+        partnerId: r.partnerId,
+        partnerName: r.partnerName,
+        prepaidCount: Number(r.prepaidCount),
+        postpaidCount: Number(r.postpaidCount),
+        totalReceipts: Number(r.totalReceipts),
+        totalRevenue: Number(r.totalRevenue),
+      }));
+    }
 
     const commissionRow = (commissionTotals[0] ?? { total: 0, pending: 0, paid: 0 }) as unknown as {
       total: string;
@@ -148,17 +126,13 @@ export const dashboardService = {
           pending: Number(commissionRow.pending),
           paid: Number(commissionRow.paid),
         },
-        // V4 NEW: only populated for Super Admin - the amount THEY personally keep (buying price),
-        // as distinct from the `commission` figures above which are what partners earn.
         adminRevenue: {
           pending: Number(revenueRow?.pending ?? 0),
           paid: Number(revenueRow?.paid ?? 0),
         },
       },
-      charts: {
-        monthlyStudents: fillSeries(monthlyStudentsRaw as unknown as Array<{ month: string; count: string }>),
-        monthlyApplications: fillSeries(monthlyApplicationsRaw as unknown as Array<{ month: string; count: string }>),
-      },
+      // V9 NEW: per-partner receipt breakdown (Super Admin only)
+      partnerReceipts,
       recentStudents: recentStudents.map((s) => s.toJSON()),
     };
   },
