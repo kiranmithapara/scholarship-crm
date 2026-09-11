@@ -84,31 +84,31 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 p-6">
+    <div className="mx-auto max-w-2xl space-y-4 sm:space-y-6 p-3 sm:p-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Settings</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Site-wide configuration for Scholarship CRM.</p>
+        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">Settings</h1>
+        <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-muted-foreground">Site-wide configuration for Scholarship CRM.</p>
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-1.5">
-            <Globe className="h-3.5 w-3.5" /> Website
+        <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
+          <CardTitle className="text-base sm:text-lg flex items-center gap-1.5">
+            <Globe className="h-4 w-4" /> Website
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4 pt-0">
+        <CardContent className="space-y-4 p-4 sm:p-6 pt-0">
           <FormInput label="Website Name" value={websiteName} onChange={(e) => setWebsiteName(e.target.value)} />
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-1.5">
-            <Mail className="h-3.5 w-3.5" /> SMTP Configuration
+        <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
+          <CardTitle className="text-base sm:text-lg flex items-center gap-1.5">
+            <Mail className="h-4 w-4" /> SMTP Configuration
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4 pt-0">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <CardContent className="space-y-4 p-4 sm:p-6 pt-0">
+          <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2">
             <FormInput label="SMTP Host" value={smtpHost} onChange={(e) => setSmtpHost(e.target.value)} placeholder="smtp.gmail.com" />
             <FormInput label="SMTP Port" value={smtpPort} onChange={(e) => setSmtpPort(e.target.value)} placeholder="587" />
           </div>
@@ -124,31 +124,31 @@ export default function SettingsPage() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-1.5">
-            <Shield className="h-3.5 w-3.5" /> Firebase & Security
+        <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
+          <CardTitle className="text-base sm:text-lg flex items-center gap-1.5">
+            <Shield className="h-4 w-4" /> Firebase & Security
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4 pt-0">
+        <CardContent className="space-y-4 p-4 sm:p-6 pt-0">
           <FormInput label="Firebase Storage Bucket" value={firebaseBucket} onChange={(e) => setFirebaseBucket(e.target.value)} />
           <div className="space-y-1.5">
-            <Label>Allowed IPs (comma separated, leave empty to allow all)</Label>
+            <Label className="text-xs sm:text-sm">Allowed IPs (comma separated, leave empty to allow all)</Label>
             <Textarea value={allowedIps} onChange={(e) => setAllowedIps(e.target.value)} rows={2} placeholder="103.21.244.10, 192.168.1.1" />
           </div>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-1.5">
-            <Moon className="h-3.5 w-3.5" /> Appearance
+        <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
+          <CardTitle className="text-base sm:text-lg flex items-center gap-1.5">
+            <Moon className="h-4 w-4" /> Appearance
           </CardTitle>
         </CardHeader>
-        <CardContent className="pt-0">
-          <div className="flex items-center justify-between">
+        <CardContent className="p-4 sm:p-6 pt-0">
+          <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-medium text-foreground">Default Dark Mode</p>
-              <p className="text-xs text-muted-foreground">Sets the default theme for new users</p>
+              <p className="text-xs sm:text-sm font-medium text-foreground">Default Dark Mode</p>
+              <p className="text-[11px] sm:text-xs text-muted-foreground">Sets the default theme for new users</p>
             </div>
             <Switch checked={darkModeDefault} onCheckedChange={setDarkModeDefault} />
           </div>

@@ -25,10 +25,10 @@ export function StatCard({ label, value, icon: Icon, prefix = "", isLoading, ton
   if (isLoading) {
     return (
       <Card>
-        <CardContent className="p-5">
-          <Skeleton className="mb-3 h-9 w-9 rounded-lg" />
-          <Skeleton className="mb-2 h-3 w-24" />
-          <Skeleton className="h-7 w-16" />
+        <CardContent className="p-3.5 sm:p-5">
+          <Skeleton className="mb-2 sm:mb-3 h-8 w-8 sm:h-9 sm:w-9 rounded-lg" />
+          <Skeleton className="mb-1.5 sm:mb-2 h-3 w-20 sm:w-24" />
+          <Skeleton className="h-6 sm:h-7 w-14 sm:w-16" />
         </CardContent>
       </Card>
     );
@@ -36,12 +36,12 @@ export function StatCard({ label, value, icon: Icon, prefix = "", isLoading, ton
 
   return (
     <Card className="transition-shadow hover:shadow-soft-md">
-      <CardContent className="p-5">
-        <div className={cn("mb-3 flex h-9 w-9 items-center justify-center rounded-lg", toneStyles[tone])}>
-          <Icon className="h-4.5 w-4.5" />
+      <CardContent className="p-3.5 sm:p-5">
+        <div className={cn("mb-2 sm:mb-3 flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg", toneStyles[tone])}>
+          <Icon className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
         </div>
-        <p className="text-xs font-medium text-muted-foreground">{label}</p>
-        <p className="mt-1 text-2xl font-semibold tracking-tight text-foreground">
+        <p className="text-[11px] sm:text-xs font-medium text-muted-foreground truncate" title={label}>{label}</p>
+        <p className="mt-0.5 sm:mt-1 text-lg sm:text-2xl font-semibold tracking-tight text-foreground">
           <AnimatedCounter value={value} prefix={prefix} />
         </p>
       </CardContent>

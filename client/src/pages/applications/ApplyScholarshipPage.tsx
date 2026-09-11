@@ -109,27 +109,27 @@ export default function ApplyScholarshipPage() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 p-4 sm:p-6">
-      <Link to={isSuperAdmin ? ROUTES.STUDENTS : ROUTES.MY_STUDENTS} className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
+    <div className="mx-auto max-w-2xl space-y-4 sm:space-y-6 p-3 sm:p-6">
+      <Link to={isSuperAdmin ? ROUTES.STUDENTS : ROUTES.MY_STUDENTS} className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-3.5 w-3.5" /> Back to Students
       </Link>
 
       <div className="flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary-50 text-primary">
+        <div className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl bg-primary-50 text-primary shrink-0">
           <FileText className="h-5 w-5" />
         </div>
         <div>
-          <h1 className="text-xl font-semibold text-foreground">New Student Application</h1>
-          <p className="text-sm text-muted-foreground">Fill in the student's details to submit a new application.</p>
+          <h1 className="text-lg sm:text-xl font-semibold text-foreground">New Student Application</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">Fill in the student's details to submit a new application.</p>
         </div>
       </div>
 
       <Card>
-        <CardContent className="p-6">
+        <CardContent className="p-4 sm:p-6">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
             {isSuperAdmin && (
               <div className="space-y-1.5">
-                <Label>Referral Partner *</Label>
+                <Label className="text-xs sm:text-sm">Referral Partner *</Label>
                 <Controller
                   control={control}
                   name="referralPartnerId"
@@ -153,10 +153,10 @@ export default function ApplyScholarshipPage() {
 
             <FormInput label="Full Name" placeholder="Student's full name" error={errors.fullName?.message} {...register("fullName")} />
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2">
               <PhoneInput label="Mobile Number" placeholder="9876543210" error={errors.mobile?.message} {...register("mobile")} />
               <div className="space-y-1.5">
-                <Label>Gender</Label>
+                <Label className="text-xs sm:text-sm">Gender</Label>
                 <Controller
                   control={control}
                   name="gender"
@@ -208,7 +208,7 @@ export default function ApplyScholarshipPage() {
               )}
             />
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2">
               <Controller
                 control={control}
                 name="course"
@@ -241,7 +241,7 @@ export default function ApplyScholarshipPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label>Service Type</Label>
+              <Label className="text-xs sm:text-sm">Service Type</Label>
               <Controller
                 control={control}
                 name="serviceType"

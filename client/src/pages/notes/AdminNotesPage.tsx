@@ -125,24 +125,24 @@ export default function AdminNotesPage() {
   }
 
   return (
-    <div className="space-y-6 p-4 sm:p-6">
+    <div className="space-y-4 sm:space-y-6 p-3 sm:p-6">
       <div>
         <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">My Notes</h1>
-        <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
+        <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-muted-foreground">
           Your personal notepad. These notes are private to you and never visible to referral partners.
         </p>
       </div>
 
       {/* Add Note Form */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-1.5">
-            <Plus className="h-3.5 w-3.5" /> Add New Note
+        <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
+          <CardTitle className="text-base sm:text-lg flex items-center gap-1.5">
+            <Plus className="h-4 w-4" /> Add New Note
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3 pt-0">
+        <CardContent className="space-y-3 p-4 sm:p-6 pt-0">
           <div className="space-y-1.5">
-            <Label>Title (optional)</Label>
+            <Label className="text-xs sm:text-sm">Title (optional)</Label>
             <Input
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
@@ -151,7 +151,7 @@ export default function AdminNotesPage() {
             />
           </div>
           <div className="space-y-1.5">
-            <Label>Note</Label>
+            <Label className="text-xs sm:text-sm">Note</Label>
             <Textarea
               value={newNote}
               onChange={(e) => setNewNote(e.target.value)}
@@ -162,6 +162,7 @@ export default function AdminNotesPage() {
           <Button
             variant="gradient"
             size="sm"
+            className="w-full sm:w-auto"
             onClick={handleAdd}
             isLoading={isAdding}
             disabled={!newNote.trim()}
@@ -173,7 +174,7 @@ export default function AdminNotesPage() {
 
       {/* Search */}
       {notes && notes.length > 0 && (
-        <div className="relative sm:max-w-sm">
+        <div className="relative w-full sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search notes..."
@@ -201,16 +202,16 @@ export default function AdminNotesPage() {
         <div className="space-y-3">
           {filteredNotes.map((note) => (
             <Card key={note.id} className="transition-shadow hover:shadow-soft-md">
-              <CardContent className="p-5">
+              <CardContent className="p-4 sm:p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     {note.title && (
                       <p className="text-sm font-semibold text-foreground mb-1">{note.title}</p>
                     )}
-                    <p className="text-sm text-foreground whitespace-pre-wrap break-words">
+                    <p className="text-xs sm:text-sm text-foreground whitespace-pre-wrap break-words">
                       {note.note}
                     </p>
-                    <p className="mt-2 text-xs text-muted-foreground">
+                    <p className="mt-2 text-[11px] sm:text-xs text-muted-foreground">
                       {formatDateTime(note.createdAt)}
                       {note.updatedAt !== note.createdAt && " • edited"}
                     </p>
@@ -219,7 +220,7 @@ export default function AdminNotesPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8"
+                      className="h-7 w-7 sm:h-8 sm:w-8"
                       title="Edit note"
                       onClick={() => {
                         setEditingId(note.id);
@@ -232,7 +233,7 @@ export default function AdminNotesPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-danger hover:bg-danger/10"
+                      className="h-7 w-7 sm:h-8 sm:w-8 text-danger hover:bg-danger/10"
                       title="Delete note"
                       onClick={() => setDeletingId(note.id)}
                     >
@@ -248,17 +249,17 @@ export default function AdminNotesPage() {
 
       {/* Edit Modal */}
       {editingId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-lg rounded-xl bg-card p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-4 animate-fade-in">
+          <div className="w-full max-w-lg rounded-xl bg-card p-4 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Edit Note</h2>
-              <Button variant="ghost" size="icon" onClick={() => setEditingId(null)}>
+              <h2 className="text-base sm:text-lg font-semibold">Edit Note</h2>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingId(null)}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <Label>Title (optional)</Label>
+                <Label className="text-xs sm:text-sm">Title (optional)</Label>
                 <Input
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
@@ -267,7 +268,7 @@ export default function AdminNotesPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Note</Label>
+                <Label className="text-xs sm:text-sm">Note</Label>
                 <Textarea
                   value={editNote}
                   onChange={(e) => setEditNote(e.target.value)}

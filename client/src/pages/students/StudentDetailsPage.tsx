@@ -367,8 +367,8 @@ export default function StudentDetailsPage() {
         </Card>
       )}
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="flex-wrap">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="flex w-full justify-start overflow-x-auto scrollbar-none gap-1 p-1 whitespace-nowrap">
           <TabsTrigger value="overview"><UserIcon className="mr-1.5 h-3.5 w-3.5" />Overview</TabsTrigger>
           <TabsTrigger value="documents"><FileText className="mr-1.5 h-3.5 w-3.5" />Documents</TabsTrigger>
           {isPostpaid && (
@@ -781,11 +781,11 @@ export default function StudentDetailsPage() {
 
       {/* Edit Buying Price Modal */}
       {showEditBuyingPrice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-xl bg-card p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-4 animate-fade-in">
+          <div className="w-full max-w-md rounded-xl bg-card p-4 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Edit Buying Price</h2>
-              <Button variant="ghost" size="icon" onClick={() => setShowEditBuyingPrice(false)}>
+              <h2 className="text-base sm:text-lg font-semibold">Edit Buying Price</h2>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowEditBuyingPrice(false)}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
@@ -810,11 +810,11 @@ export default function StudentDetailsPage() {
 
       {/* Edit Timeline Note Modal */}
       {editingTimelineId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-xl bg-card p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-4 animate-fade-in">
+          <div className="w-full max-w-md rounded-xl bg-card p-4 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Edit Timeline Note</h2>
-              <Button variant="ghost" size="icon" onClick={() => setEditingTimelineId(null)}>
+              <h2 className="text-base sm:text-lg font-semibold">Edit Timeline Note</h2>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingTimelineId(null)}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
@@ -826,6 +826,7 @@ export default function StudentDetailsPage() {
                   onChange={(e) => setEditingNote(e.target.value)}
                   rows={4}
                   placeholder="Enter note..."
+                  className="text-sm"
                 />
               </div>
               <div className="flex gap-2">
@@ -843,11 +844,11 @@ export default function StudentDetailsPage() {
 
       {/* Edit Internal Note Modal */}
       {editingInternalNoteId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-xl bg-card p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-4 animate-fade-in">
+          <div className="w-full max-w-md rounded-xl bg-card p-4 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Edit Internal Note</h2>
-              <Button variant="ghost" size="icon" onClick={() => setEditingInternalNoteId(null)}>
+              <h2 className="text-base sm:text-lg font-semibold">Edit Internal Note</h2>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingInternalNoteId(null)}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
@@ -859,6 +860,7 @@ export default function StudentDetailsPage() {
                   onChange={(e) => setEditingInternalNoteText(e.target.value)}
                   rows={5}
                   placeholder="Enter note..."
+                  className="text-sm"
                 />
               </div>
               <div className="flex gap-2">

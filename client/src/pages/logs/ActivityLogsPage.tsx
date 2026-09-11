@@ -39,10 +39,10 @@ export default function ActivityLogsPage() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-4 sm:space-y-6 p-3 sm:p-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Activity Logs</h1>
-        <p className="mt-1 text-sm text-muted-foreground">A full audit trail of actions taken across the system.</p>
+        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">Activity Logs</h1>
+        <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-muted-foreground">A full audit trail of actions taken across the system.</p>
       </div>
 
       <div className="relative sm:max-w-sm">
@@ -53,31 +53,31 @@ export default function ActivityLogsPage() {
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="space-y-3 p-6">
+            <div className="space-y-3 p-4 sm:p-6">
               {Array.from({ length: 8 }).map((_, i) => (
                 <Skeleton key={i} className="h-12 w-full" />
               ))}
             </div>
           ) : !data || data.items.length === 0 ? (
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               <EmptyState icon={History} title="No activity recorded yet" />
             </div>
           ) : (
             <>
               <div className="divide-y divide-border">
                 {data.items.map((log) => (
-                  <div key={log.id} className="flex items-center justify-between px-6 py-3.5">
+                  <div key={log.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 px-4 sm:px-6 py-3">
                     <div>
-                      <p className="text-sm text-foreground">
+                      <p className="text-xs sm:text-sm text-foreground">
                         <span className="font-medium">{log.user.fullName}</span> {actionLabels[log.action] ?? log.action.replace(/_/g, " ").toLowerCase()}
                       </p>
-                      {log.ipAddress && <p className="text-xs text-muted-foreground">IP: {log.ipAddress}</p>}
+                      {log.ipAddress && <p className="text-[11px] sm:text-xs text-muted-foreground">IP: {log.ipAddress}</p>}
                     </div>
-                    <p className="shrink-0 text-xs text-muted-foreground">{formatDateTime(log.createdAt)}</p>
+                    <p className="shrink-0 text-[11px] sm:text-xs text-muted-foreground">{formatDateTime(log.createdAt)}</p>
                   </div>
                 ))}
               </div>
-              <div className="px-6 pb-4 pt-4">
+              <div className="px-4 sm:px-6 pb-4 pt-4">
                 <Pagination page={data.page} totalPages={data.totalPages} onPageChange={setPage} />
               </div>
             </>

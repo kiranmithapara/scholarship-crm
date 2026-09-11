@@ -22,10 +22,10 @@ export default function LoginLogsPage() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-4 sm:space-y-6 p-3 sm:p-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Login Logs</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Every login attempt across the system.</p>
+        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">Login Logs</h1>
+        <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-muted-foreground">Every login attempt across the system.</p>
       </div>
 
       <div className="relative sm:max-w-sm">
@@ -36,50 +36,50 @@ export default function LoginLogsPage() {
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="space-y-3 p-6">
+            <div className="space-y-3 p-4 sm:p-6">
               {Array.from({ length: 8 }).map((_, i) => (
                 <Skeleton key={i} className="h-12 w-full" />
               ))}
             </div>
           ) : !data || data.items.length === 0 ? (
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               <EmptyState icon={ScrollText} title="No login attempts found" />
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+              <div className="overflow-x-auto scrollbar-thin">
+                <table className="w-full min-w-[550px] text-sm">
                   <thead>
                     <tr className="border-b border-border bg-muted/40 text-left text-xs text-muted-foreground">
-                      <th className="px-6 py-3 font-medium">User</th>
-                      <th className="px-4 py-3 font-medium">IP Address</th>
-                      <th className="px-4 py-3 font-medium">Browser</th>
-                      <th className="px-4 py-3 font-medium">Device</th>
-                      <th className="px-4 py-3 font-medium">Status</th>
-                      <th className="px-6 py-3 font-medium">Date</th>
+                      <th className="px-4 sm:px-6 py-3 font-medium">User</th>
+                      <th className="px-3 sm:px-4 py-3 font-medium">IP Address</th>
+                      <th className="px-3 sm:px-4 py-3 font-medium">Browser</th>
+                      <th className="px-3 sm:px-4 py-3 font-medium">Device</th>
+                      <th className="px-3 sm:px-4 py-3 font-medium">Status</th>
+                      <th className="px-4 sm:px-6 py-3 font-medium">Date</th>
                     </tr>
                   </thead>
                   <tbody>
                     {data.items.map((log) => (
                       <tr key={log.id} className="border-b border-border/60 last:border-0 hover:bg-accent/40">
-                        <td className="px-6 py-3">
+                        <td className="px-4 sm:px-6 py-3">
                           <p className="font-medium text-foreground">{log.user?.fullName ?? "Unknown"}</p>
                           <p className="text-xs text-muted-foreground">{log.emailAttempted}</p>
                         </td>
-                        <td className="px-4 py-3 text-muted-foreground">{log.ipAddress}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{log.browser ?? "-"}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{log.device ?? "-"}</td>
-                        <td className="px-4 py-3">
+                        <td className="px-3 sm:px-4 py-3 text-muted-foreground">{log.ipAddress}</td>
+                        <td className="px-3 sm:px-4 py-3 text-muted-foreground">{log.browser ?? "-"}</td>
+                        <td className="px-3 sm:px-4 py-3 text-muted-foreground">{log.device ?? "-"}</td>
+                        <td className="px-3 sm:px-4 py-3">
                           <Badge variant={log.status === "success" ? "success" : "danger"}>{log.status === "success" ? "Success" : "Failed"}</Badge>
                           {log.failureReason && <p className="mt-0.5 text-xs text-muted-foreground">{log.failureReason}</p>}
                         </td>
-                        <td className="px-6 py-3 text-muted-foreground">{formatDateTime(log.createdAt)}</td>
+                        <td className="px-4 sm:px-6 py-3 text-muted-foreground">{formatDateTime(log.createdAt)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <div className="px-6 pb-4">
+              <div className="px-4 sm:px-6 pb-4">
                 <Pagination page={data.page} totalPages={data.totalPages} onPageChange={setPage} />
               </div>
             </>

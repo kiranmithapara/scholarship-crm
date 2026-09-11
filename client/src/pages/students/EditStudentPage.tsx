@@ -128,10 +128,10 @@ export default function EditStudentPage() {
   const serviceTypeChanging = form.serviceType !== originalServiceType;
 
   return (
-    <div className="max-w-3xl mx-auto space-y-4 sm:space-y-6 p-4 sm:p-6">
+    <div className="max-w-3xl mx-auto space-y-4 sm:space-y-6 p-3 sm:p-6">
       <Link
         to={buildPath(ROUTES.STUDENT_DETAILS, { id: id! })}
-        className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
+        className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="h-3.5 w-3.5" /> Back to Student
       </Link>
@@ -140,7 +140,7 @@ export default function EditStudentPage() {
         <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">
           Edit Student
         </h1>
-        <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
+        <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-muted-foreground">
           Update student details, service type, and pricing. Super Admin only.
         </p>
       </div>
@@ -148,10 +148,10 @@ export default function EditStudentPage() {
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Basic Info */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Basic Information</CardTitle>
+          <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
+            <CardTitle className="text-base sm:text-lg">Basic Information</CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2 pt-0">
+          <CardContent className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 p-4 sm:p-6 pt-0">
             <FormInput
               label="Full Name"
               value={form.fullName}
@@ -165,7 +165,7 @@ export default function EditStudentPage() {
               required
             />
             <div className="space-y-1.5">
-              <Label>Gender</Label>
+              <Label className="text-xs sm:text-sm">Gender</Label>
               <Select value={form.gender || ""} onValueChange={(v) => setForm({ ...form, gender: v as any })}>
                 <SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger>
                 <SelectContent>
@@ -180,10 +180,10 @@ export default function EditStudentPage() {
 
         {/* College Info */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">College Details</CardTitle>
+          <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
+            <CardTitle className="text-base sm:text-lg">College Details</CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2 pt-0">
+          <CardContent className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 p-4 sm:p-6 pt-0">
             <SuggestionInput
               label="College Name"
               value={form.collegeName}
@@ -214,12 +214,12 @@ export default function EditStudentPage() {
 
         {/* Service + Pricing */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Service & Pricing</CardTitle>
+          <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
+            <CardTitle className="text-base sm:text-lg">Service & Pricing</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4 pt-0">
+          <CardContent className="space-y-4 p-4 sm:p-6 pt-0">
             <div className="space-y-1.5">
-              <Label>Service Type</Label>
+              <Label className="text-xs sm:text-sm">Service Type</Label>
               <Select
                 value={form.serviceType || ""}
                 onValueChange={(v) => setForm({ ...form, serviceType: v as any })}
@@ -247,7 +247,7 @@ export default function EditStudentPage() {
               </div>
             )}
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2">
               <FormInput
                 label="Selling Price (₹)"
                 type="number"

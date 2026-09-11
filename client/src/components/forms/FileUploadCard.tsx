@@ -39,31 +39,31 @@ export function FileUploadCard({ label, type, existingDocument, onUpload }: File
   };
 
   return (
-    <div className="flex items-center justify-between rounded-lg border border-border p-4">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-border p-3.5 sm:p-4">
       <div className="flex items-center gap-3">
         <div
-          className={`flex h-10 w-10 items-center justify-center rounded-lg ${
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
             existingDocument ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"
           }`}
         >
           {existingDocument ? <CheckCircle2 className="h-5 w-5" /> : <Upload className="h-5 w-5" />}
         </div>
-        <div>
-          <p className="text-sm font-medium text-foreground">{label}</p>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium text-foreground truncate">{label}</p>
           <p className="text-xs text-muted-foreground">{existingDocument ? "Uploaded" : "Not uploaded yet"}</p>
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 self-end sm:self-auto">
         {existingDocument && (
-          <Button asChild variant="ghost" size="sm">
+          <Button asChild variant="ghost" size="sm" className="h-8 text-xs">
             <a href={getFileUrl(existingDocument.fileUrl)} target="_blank" rel="noopener noreferrer">
               <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> View
             </a>
           </Button>
         )}
         <input ref={inputRef} type="file" accept=".jpg,.jpeg,.png,.webp,.pdf" onChange={handleFileSelect} className="hidden" />
-        <Button variant="outline" size="sm" onClick={() => inputRef.current?.click()} disabled={isUploading}>
+        <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => inputRef.current?.click()} disabled={isUploading}>
           {isUploading ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Upload className="mr-1.5 h-3.5 w-3.5" />}
           {existingDocument ? "Replace" : "Upload"}
         </Button>

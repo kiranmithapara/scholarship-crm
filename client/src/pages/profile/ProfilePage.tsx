@@ -141,46 +141,46 @@ export default function ProfilePage() {
   if (!user) return null;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 p-6">
+    <div className="mx-auto max-w-2xl space-y-4 sm:space-y-6 p-3 sm:p-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">My Profile</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Manage your account details and security settings.</p>
+        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">My Profile</h1>
+        <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-muted-foreground">Manage your account details and security settings.</p>
       </div>
 
       <Card>
-        <CardContent className="flex items-center gap-4 p-6">
+        <CardContent className="flex items-center gap-3 sm:gap-4 p-4 sm:p-6">
           <div className="relative">
-            <Avatar className="h-20 w-20">
+            <Avatar className="h-16 w-16 sm:h-20 sm:w-20">
               <AvatarImage src={user.photoUrl ?? undefined} alt={user.fullName} />
-              <AvatarFallback className="text-lg">{getInitials(user.fullName)}</AvatarFallback>
+              <AvatarFallback className="text-base sm:text-lg">{getInitials(user.fullName)}</AvatarFallback>
             </Avatar>
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploadingPhoto}
-              className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-soft hover:bg-primary-700"
+              className="absolute -bottom-1 -right-1 flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-soft hover:bg-primary-700"
               aria-label="Change photo"
             >
-              <Camera className="h-3.5 w-3.5" />
+              <Camera className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
             </button>
             <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
           </div>
-          <div>
-            <p className="text-base font-semibold text-foreground">{user.fullName}</p>
-            <p className="text-sm text-muted-foreground">{user.email}</p>
-            <p className="text-sm text-muted-foreground">@{user.username}</p>
+          <div className="min-w-0 flex-1">
+            <p className="text-base font-semibold text-foreground truncate">{user.fullName}</p>
+            <p className="text-xs sm:text-sm text-muted-foreground truncate">{user.email}</p>
+            <p className="text-xs sm:text-sm text-muted-foreground truncate">@{user.username}</p>
           </div>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Edit Details</CardTitle>
+        <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
+          <CardTitle className="text-base sm:text-lg">Edit Details</CardTitle>
         </CardHeader>
-        <CardContent className="pt-0">
+        <CardContent className="p-4 sm:p-6 pt-0">
           <form onSubmit={profileForm.handleSubmit(onSaveProfile)} className="space-y-4" noValidate>
             <FormInput label="Full Name" error={profileForm.formState.errors.fullName?.message} {...profileForm.register("fullName")} />
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2">
               <FormInput
                 label="Email Address"
                 type="email"
@@ -195,7 +195,7 @@ export default function ProfilePage() {
             </div>
 
             {isEmailChanged && (
-              <div className="rounded-lg border border-warning/30 bg-warning/5 p-4 space-y-3 animate-in fade-in duration-200">
+              <div className="rounded-lg border border-warning/30 bg-warning/5 p-3.5 sm:p-4 space-y-3 animate-in fade-in duration-200">
                 <div className="flex items-start gap-2.5 text-xs text-warning-foreground">
                   <ShieldAlert className="h-4 w-4 shrink-0 text-warning mt-0.5" />
                   <div>
@@ -223,7 +223,7 @@ export default function ProfilePage() {
               </div>
             )}
 
-            <Button type="submit" variant="gradient" isLoading={profileForm.formState.isSubmitting}>
+            <Button type="submit" variant="gradient" className="w-full sm:w-auto" isLoading={profileForm.formState.isSubmitting}>
               Save Changes
             </Button>
           </form>
@@ -231,12 +231,12 @@ export default function ProfilePage() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-1.5">
-            <KeyRound className="h-3.5 w-3.5" /> Change Password
+        <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
+          <CardTitle className="text-base sm:text-lg flex items-center gap-1.5">
+            <KeyRound className="h-4 w-4" /> Change Password
           </CardTitle>
         </CardHeader>
-        <CardContent className="pt-0">
+        <CardContent className="p-4 sm:p-6 pt-0">
           <form onSubmit={passwordForm.handleSubmit(onChangePassword)} className="space-y-4" noValidate>
             <FormInput
               label="Current Password"
@@ -266,7 +266,7 @@ export default function ProfilePage() {
               error={passwordForm.formState.errors.confirmNewPassword?.message}
               {...passwordForm.register("confirmNewPassword")}
             />
-            <Button type="submit" variant="outline" isLoading={passwordForm.formState.isSubmitting}>
+            <Button type="submit" variant="outline" className="w-full sm:w-auto" isLoading={passwordForm.formState.isSubmitting}>
               Update Password
             </Button>
           </form>

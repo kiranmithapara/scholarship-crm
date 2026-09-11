@@ -42,7 +42,7 @@ export function OtpInput({ value, onChange, length = 6, error }: OtpInputProps) 
   };
 
   return (
-    <div className="flex justify-between gap-2" onPaste={handlePaste}>
+    <div className="flex justify-between gap-1.5 sm:gap-2" onPaste={handlePaste}>
       {digits.map((digit, index) => (
         <input
           key={index}
@@ -56,7 +56,7 @@ export function OtpInput({ value, onChange, length = 6, error }: OtpInputProps) 
           onChange={(e) => handleChange(index, e.target.value)}
           onKeyDown={(e) => handleKeyDown(index, e)}
           className={cn(
-            "h-12 w-11 rounded-md border border-input bg-background text-center text-lg font-semibold text-foreground",
+            "h-11 w-9 sm:h-12 sm:w-11 rounded-md border border-input bg-background text-center text-base sm:text-lg font-semibold text-foreground",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             error && "border-danger focus-visible:ring-danger"
           )}

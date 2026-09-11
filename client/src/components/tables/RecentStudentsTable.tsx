@@ -30,8 +30,8 @@ export function RecentStudentsTable({ students, isLoading }: RecentStudentsTable
         ) : students.length === 0 ? (
           <EmptyState icon={GraduationCap} title="No students yet" description="Students added by referral partners will appear here." />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto scrollbar-thin">
+            <table className="w-full min-w-[500px] text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-xs text-muted-foreground">
                   <th className="pb-2 font-medium">Name</th>

@@ -57,56 +57,56 @@ export default function ReferralPartnerListPage() {
   const blockedCount = data?.items.filter((p) => !p.isActive).length ?? 0;
 
   return (
-    <div className="space-y-6 p-4 sm:p-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-4 sm:space-y-6 p-3 sm:p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">Referral Partners</h1>
-          <p className="mt-1 text-xs sm:text-sm text-muted-foreground">Manage all referral partners and their performance.</p>
+          <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-muted-foreground">Manage all referral partners and their performance.</p>
         </div>
-        <Button onClick={() => setIsCreateOpen(true)} variant="gradient">
+        <Button onClick={() => setIsCreateOpen(true)} variant="gradient" className="w-full sm:w-auto">
           <UserPlus className="mr-2 h-4 w-4" /> Add Partner
         </Button>
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-2.5 sm:gap-4 sm:grid-cols-3">
         <Card>
-          <CardContent className="flex items-center gap-3 p-5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-50 text-primary">
-              <Users className="h-4.5 w-4.5" />
+          <CardContent className="flex items-center gap-3 p-3.5 sm:p-5">
+            <div className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary">
+              <Users className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Total Partners</p>
-              <p className="text-xl font-semibold text-foreground">{data?.total ?? 0}</p>
+              <p className="text-[11px] sm:text-xs text-muted-foreground">Total Partners</p>
+              <p className="text-lg sm:text-xl font-semibold text-foreground">{data?.total ?? 0}</p>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="flex items-center gap-3 p-5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-success/10 text-success">
-              <UserCheck className="h-4.5 w-4.5" />
+          <CardContent className="flex items-center gap-3 p-3.5 sm:p-5">
+            <div className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-lg bg-success/10 text-success">
+              <UserCheck className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Active (this page)</p>
-              <p className="text-xl font-semibold text-foreground">{activeCount}</p>
+              <p className="text-[11px] sm:text-xs text-muted-foreground">Active (this page)</p>
+              <p className="text-lg sm:text-xl font-semibold text-foreground">{activeCount}</p>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="flex items-center gap-3 p-5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-danger/10 text-danger">
-              <UserX className="h-4.5 w-4.5" />
+          <CardContent className="flex items-center gap-3 p-3.5 sm:p-5">
+            <div className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-lg bg-danger/10 text-danger">
+              <UserX className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Blocked (this page)</p>
-              <p className="text-xl font-semibold text-foreground">{blockedCount}</p>
+              <p className="text-[11px] sm:text-xs text-muted-foreground">Blocked (this page)</p>
+              <p className="text-lg sm:text-xl font-semibold text-foreground">{blockedCount}</p>
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Search + Filter */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input placeholder="Search by name, email or mobile..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
@@ -127,33 +127,33 @@ export default function ReferralPartnerListPage() {
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="space-y-3 p-6">
+            <div className="space-y-3 p-4 sm:p-6">
               {Array.from({ length: 6 }).map((_, i) => (
                 <Skeleton key={i} className="h-14 w-full" />
               ))}
             </div>
           ) : !data || data.items.length === 0 ? (
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               <EmptyState icon={Users} title="No referral partners found" description="Try adjusting your search or filters." />
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+              <div className="overflow-x-auto scrollbar-thin">
+                <table className="w-full min-w-[650px] text-sm">
                   <thead>
                     <tr className="border-b border-border bg-muted/40 text-left text-xs text-muted-foreground">
-                      <th className="px-6 py-3 font-medium">Partner</th>
-                      <th className="px-4 py-3 font-medium">Mobile</th>
-                      <th className="px-4 py-3 font-medium">Students</th>
-                      <th className="px-4 py-3 font-medium">Commission</th>
-                      <th className="px-4 py-3 font-medium">Status</th>
-                      <th className="px-6 py-3 text-right font-medium">Actions</th>
+                      <th className="px-4 sm:px-6 py-3 font-medium">Partner</th>
+                      <th className="px-3 sm:px-4 py-3 font-medium">Mobile</th>
+                      <th className="px-3 sm:px-4 py-3 font-medium">Students</th>
+                      <th className="px-3 sm:px-4 py-3 font-medium">Commission</th>
+                      <th className="px-3 sm:px-4 py-3 font-medium">Status</th>
+                      <th className="px-4 sm:px-6 py-3 text-right font-medium">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {data.items.map((partner) => (
                       <tr key={partner.id} className="border-b border-border/60 last:border-0 hover:bg-accent/40">
-                        <td className="px-6 py-3.5">
+                        <td className="px-4 sm:px-6 py-3.5">
                           <div className="flex items-center gap-3">
                             <Avatar className="h-9 w-9">
                               <AvatarImage src={partner.photoUrl ?? undefined} alt={partner.fullName} />
@@ -167,13 +167,13 @@ export default function ReferralPartnerListPage() {
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-3.5 text-muted-foreground">{partner.mobile}</td>
-                        <td className="px-4 py-3.5 text-muted-foreground">{partner.studentCount ?? 0}</td>
-                        <td className="px-4 py-3.5 text-muted-foreground">{formatCurrency(partner.totalCommission ?? 0)}</td>
-                        <td className="px-4 py-3.5">
+                        <td className="px-3 sm:px-4 py-3.5 text-muted-foreground">{partner.mobile}</td>
+                        <td className="px-3 sm:px-4 py-3.5 text-muted-foreground">{partner.studentCount ?? 0}</td>
+                        <td className="px-3 sm:px-4 py-3.5 text-muted-foreground">{formatCurrency(partner.totalCommission ?? 0)}</td>
+                        <td className="px-3 sm:px-4 py-3.5">
                           <Badge variant={partner.isActive ? "success" : "danger"}>{partner.isActive ? "Active" : "Blocked"}</Badge>
                         </td>
-                        <td className="px-6 py-3.5">
+                        <td className="px-4 sm:px-6 py-3.5">
                           <div className="flex items-center justify-end gap-1">
                             <QuickActions mobile={partner.mobile} whatsappMessage={`Hi ${partner.fullName}, `} />
                             <Button asChild variant="ghost" size="icon" className="h-8 w-8">
@@ -206,7 +206,7 @@ export default function ReferralPartnerListPage() {
                   </tbody>
                 </table>
               </div>
-              <div className="px-6 pb-4">
+              <div className="px-4 sm:px-6 pb-4">
                 <Pagination page={data.page} totalPages={data.totalPages} onPageChange={setPage} />
               </div>
             </>
