@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { toast } from "sonner";
 import { isAxiosError } from "axios";
@@ -17,7 +17,6 @@ import {
   CheckCheck,
   StickyNote,
   Pencil,
-  BarChart3,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -36,11 +35,6 @@ import { PhoneInput } from "@/components/forms/PhoneInput";
 import { SuggestionInput } from "@/components/forms/SuggestionInput";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { EditPartnerDialog } from "@/components/partners/EditPartnerDialog";
-import { PartnerCommissionBarChart } from "@/components/charts/PartnerCommissionBarChart";
-import { CommissionHisabDonut } from "@/components/charts/CommissionHisabDonut";
-import { PartnerServicesDonut } from "@/components/charts/PartnerServicesDonut";
-import { ApplicationStatusDonut } from "@/components/charts/ApplicationStatusDonut";
-import type { ChartMode } from "@/components/charts/PartnerReceiptsChart";
 import { usePartnerProfile } from "@/hooks/usePartnerProfile";
 import { partnerService } from "@/services/partner.service";
 import { studentService } from "@/services/student.service";
@@ -58,7 +52,6 @@ export default function ReferralPartnerProfilePage() {
   const [isSavingPricing, setIsSavingPricing] = useState(false);
   const [isMarkingAll, setIsMarkingAll] = useState(false);
   const [isEditPartnerOpen, setIsEditPartnerOpen] = useState(false);
-  const [chartMode, setChartMode] = useState<ChartMode>("all");
 
   const [commissions, setCommissions] = useState<CommissionItem[] | null>(null);
   const [commissionsLoading, setCommissionsLoading] = useState(true);
@@ -105,73 +98,6 @@ export default function ReferralPartnerProfilePage() {
   }, [data]);
 
   useEffect(fetchCommissions, [id]);
-
-  // Partner chart computations (called unconditionally before any early returns)
-  const partnerChartData = useMemo(() => {
-    if (!data) {
-      return {
-        prepaid: { pending: 0, paid: 0, total: 0, students: 0, paidStudents: 0 },
-        postpaid: { pending: 0, paid: 0, total: 0, students: 0, paidStudents: 0 },
-      };
-    }
-    const studentsList = data.students || [];
-    const prepaidStudents = studentsList.filter((s) => s.serviceType === "prepaid");
-    const postpaidStudents = studentsList.filter((s) => s.serviceType === "postpaid");
-
-    let prepaidPending = 0;
-    let prepaidPaid = 0;
-    let postpaidPending = 0;
-    let postpaidPaid = 0;
-
-    if (commissions && commissions.length > 0) {
-      commissions.forEach((c) => {
-        const isPrepaid = c.student?.serviceType === "prepaid";
-        const amt = Number(c.amount ?? 0);
-        if (isPrepaid) {
-          if (c.status === "paid") prepaidPaid += amt;
-          else prepaidPending += amt;
-        } else {
-          if (c.status === "paid") postpaidPaid += amt;
-          else postpaidPending += amt;
-        }
-      });
-    } else {
-      // Fallback ratio based on student counts
-      const totalStudentsCount = (data.stats.prepaidCount + data.stats.postpaidCount) || 1;
-      prepaidPending = (data.stats.commission.pending * data.stats.prepaidCount) / totalStudentsCount;
-      prepaidPaid = (data.stats.commission.paid * data.stats.prepaidCount) / totalStudentsCount;
-      postpaidPending = (data.stats.commission.pending * data.stats.postpaidCount) / totalStudentsCount;
-      postpaidPaid = (data.stats.commission.paid * data.stats.postpaidCount) / totalStudentsCount;
-    }
-
-    return {
-      prepaid: {
-        pending: prepaidPending,
-        paid: prepaidPaid,
-        total: prepaidPending + prepaidPaid,
-        students: data.stats.prepaidCount,
-        paidStudents: prepaidStudents.filter((s) => s.status === "completed").length,
-      },
-      postpaid: {
-        pending: postpaidPending,
-        paid: postpaidPaid,
-        total: postpaidPending + postpaidPaid,
-        students: data.stats.postpaidCount,
-        paidStudents: postpaidStudents.filter((s) => s.status === "completed").length,
-      },
-    };
-  }, [data, commissions]);
-
-  const studentStatusCounts = useMemo(() => {
-    if (!data) return { completed: 0, verified: 0, pending: 0, correctionRequested: 0 };
-    const studentsList = data.students || [];
-    return {
-      completed: studentsList.filter((s) => s.status === "completed").length,
-      verified: studentsList.filter((s) => s.status === "verified").length,
-      pending: studentsList.filter((s) => s.status === "pending").length,
-      correctionRequested: studentsList.filter((s) => s.status === "correction_requested").length,
-    };
-  }, [data]);
 
   if (error) {
     return (
@@ -419,66 +345,6 @@ export default function ReferralPartnerProfilePage() {
             <p className="text-lg sm:text-xl font-semibold text-foreground">{formatCurrency(stats.commission.paid)}</p>
           </CardContent>
         </Card>
-      </div>
-
-      {/* Visual Analytics & Hisab Charts Section */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-base sm:text-lg font-semibold text-foreground flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-muted-foreground" /> Partner Hisab & Analytics
-            </h2>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-              Visual breakdown of commissions, service distribution, and application status.
-            </p>
-          </div>
-        </div>
-
-        {/* Bar chart + Commission Hisab Donut */}
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <div className="lg:col-span-2 min-w-0">
-            <PartnerCommissionBarChart
-              data={partnerChartData}
-              isLoading={commissionsLoading}
-              mode={chartMode}
-              onModeChange={setChartMode}
-            />
-          </div>
-          <div className="lg:col-span-1 min-w-0">
-            <CommissionHisabDonut
-              title="Commission Hisab Split"
-              paid={stats.commission.paid}
-              pending={stats.commission.pending}
-              paidStudents={studentStatusCounts.completed}
-              pendingStudents={students.length - studentStatusCounts.completed}
-              isLoading={commissionsLoading}
-            />
-          </div>
-        </div>
-
-        {/* Service Donut + Status Donut */}
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <div className="min-w-0">
-            <PartnerServicesDonut
-              title="Service Applications Split"
-              prepaidCount={stats.prepaidCount}
-              postpaidCount={stats.postpaidCount}
-              prepaidCommission={partnerChartData.prepaid.total}
-              postpaidCommission={partnerChartData.postpaid.total}
-              isLoading={commissionsLoading}
-            />
-          </div>
-          <div className="min-w-0">
-            <ApplicationStatusDonut
-              title="Application Status Split"
-              completed={studentStatusCounts.completed}
-              verified={studentStatusCounts.verified}
-              pending={studentStatusCounts.pending}
-              correctionRequested={studentStatusCounts.correctionRequested}
-              isLoading={false}
-            />
-          </div>
-        </div>
       </div>
 
       {/* Pricing editor */}
