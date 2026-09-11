@@ -57,7 +57,10 @@ export function PartnerRevenueChart({ data, isLoading }: PartnerRevenueChartProp
                 cursor={{ fill: "hsl(var(--accent) / 0.3)" }}
                 content={({ active, payload }) => {
                   if (!active || !payload || payload.length === 0) return null;
-                  const item = payload[0].payload as PartnerReceiptSummary;
+                  const first = payload[0];
+                  if (!first) return null;
+                  const item = first.payload as PartnerReceiptSummary;
+                  if (!item) return null;
                   return (
                     <div className="rounded-lg border border-border bg-popover p-3 shadow-lg text-xs">
                       <p className="font-semibold text-foreground mb-2">{item.partnerName}</p>
