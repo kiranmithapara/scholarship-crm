@@ -106,6 +106,73 @@ export default function ReferralPartnerProfilePage() {
 
   useEffect(fetchCommissions, [id]);
 
+  // Partner chart computations (called unconditionally before any early returns)
+  const partnerChartData = useMemo(() => {
+    if (!data) {
+      return {
+        prepaid: { pending: 0, paid: 0, total: 0, students: 0, paidStudents: 0 },
+        postpaid: { pending: 0, paid: 0, total: 0, students: 0, paidStudents: 0 },
+      };
+    }
+    const studentsList = data.students || [];
+    const prepaidStudents = studentsList.filter((s) => s.serviceType === "prepaid");
+    const postpaidStudents = studentsList.filter((s) => s.serviceType === "postpaid");
+
+    let prepaidPending = 0;
+    let prepaidPaid = 0;
+    let postpaidPending = 0;
+    let postpaidPaid = 0;
+
+    if (commissions && commissions.length > 0) {
+      commissions.forEach((c) => {
+        const isPrepaid = c.student?.serviceType === "prepaid";
+        const amt = Number(c.amount ?? 0);
+        if (isPrepaid) {
+          if (c.status === "paid") prepaidPaid += amt;
+          else prepaidPending += amt;
+        } else {
+          if (c.status === "paid") postpaidPaid += amt;
+          else postpaidPending += amt;
+        }
+      });
+    } else {
+      // Fallback ratio based on student counts
+      const totalStudentsCount = (data.stats.prepaidCount + data.stats.postpaidCount) || 1;
+      prepaidPending = (data.stats.commission.pending * data.stats.prepaidCount) / totalStudentsCount;
+      prepaidPaid = (data.stats.commission.paid * data.stats.prepaidCount) / totalStudentsCount;
+      postpaidPending = (data.stats.commission.pending * data.stats.postpaidCount) / totalStudentsCount;
+      postpaidPaid = (data.stats.commission.paid * data.stats.postpaidCount) / totalStudentsCount;
+    }
+
+    return {
+      prepaid: {
+        pending: prepaidPending,
+        paid: prepaidPaid,
+        total: prepaidPending + prepaidPaid,
+        students: data.stats.prepaidCount,
+        paidStudents: prepaidStudents.filter((s) => s.status === "completed").length,
+      },
+      postpaid: {
+        pending: postpaidPending,
+        paid: postpaidPaid,
+        total: postpaidPending + postpaidPaid,
+        students: data.stats.postpaidCount,
+        paidStudents: postpaidStudents.filter((s) => s.status === "completed").length,
+      },
+    };
+  }, [data, commissions]);
+
+  const studentStatusCounts = useMemo(() => {
+    if (!data) return { completed: 0, verified: 0, pending: 0, correctionRequested: 0 };
+    const studentsList = data.students || [];
+    return {
+      completed: studentsList.filter((s) => s.status === "completed").length,
+      verified: studentsList.filter((s) => s.status === "verified").length,
+      pending: studentsList.filter((s) => s.status === "pending").length,
+      correctionRequested: studentsList.filter((s) => s.status === "correction_requested").length,
+    };
+  }, [data]);
+
   if (error) {
     return (
       <div className="p-4 sm:p-6">
@@ -278,64 +345,6 @@ export default function ReferralPartnerProfilePage() {
   };
 
   const hasPendingCommissions = commissions?.some((c) => c.status === "pending") ?? false;
-
-  // Partner chart computations
-  const partnerChartData = useMemo(() => {
-    const prepaidStudents = students.filter((s) => s.serviceType === "prepaid");
-    const postpaidStudents = students.filter((s) => s.serviceType === "postpaid");
-
-    let prepaidPending = 0;
-    let prepaidPaid = 0;
-    let postpaidPending = 0;
-    let postpaidPaid = 0;
-
-    if (commissions && commissions.length > 0) {
-      commissions.forEach((c) => {
-        const isPrepaid = c.student?.serviceType === "prepaid";
-        const amt = Number(c.amount ?? 0);
-        if (isPrepaid) {
-          if (c.status === "paid") prepaidPaid += amt;
-          else prepaidPending += amt;
-        } else {
-          if (c.status === "paid") postpaidPaid += amt;
-          else postpaidPending += amt;
-        }
-      });
-    } else {
-      // Fallback ratio based on student counts
-      const totalStudentsCount = (stats.prepaidCount + stats.postpaidCount) || 1;
-      prepaidPending = (stats.commission.pending * stats.prepaidCount) / totalStudentsCount;
-      prepaidPaid = (stats.commission.paid * stats.prepaidCount) / totalStudentsCount;
-      postpaidPending = (stats.commission.pending * stats.postpaidCount) / totalStudentsCount;
-      postpaidPaid = (stats.commission.paid * stats.postpaidCount) / totalStudentsCount;
-    }
-
-    return {
-      prepaid: {
-        pending: prepaidPending,
-        paid: prepaidPaid,
-        total: prepaidPending + prepaidPaid,
-        students: stats.prepaidCount,
-        paidStudents: prepaidStudents.filter((s) => s.status === "completed").length,
-      },
-      postpaid: {
-        pending: postpaidPending,
-        paid: postpaidPaid,
-        total: postpaidPending + postpaidPaid,
-        students: stats.postpaidCount,
-        paidStudents: postpaidStudents.filter((s) => s.status === "completed").length,
-      },
-    };
-  }, [students, commissions, stats]);
-
-  const studentStatusCounts = useMemo(() => {
-    return {
-      completed: students.filter((s) => s.status === "completed").length,
-      verified: students.filter((s) => s.status === "verified").length,
-      pending: students.filter((s) => s.status === "pending").length,
-      correctionRequested: students.filter((s) => s.status === "correction_requested").length,
-    };
-  }, [students]);
 
   return (
     <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
