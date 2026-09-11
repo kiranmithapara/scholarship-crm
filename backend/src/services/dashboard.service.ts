@@ -1,4 +1,4 @@
-import { Op, fn, col, literal } from "sequelize";
+import { Op, fn, col, literal, QueryTypes } from "sequelize";
 import { Student, User, Commission } from "@/models";
 import { sequelize } from "@/config/database.config";
 
@@ -46,23 +46,27 @@ export const dashboardService = {
       }),
     ]);
 
-    // Admin revenue (Super Admin only) — the buying_price portion kept by admin
-    const revenueRow = isSuperAdmin
-      ? await (async () => {
-          const [rows] = await sequelize.query<{ pending: string; paid: string }>(
-            `SELECT
-               COALESCE(SUM(CASE WHEN c.status = 'pending' THEN s.buying_price ELSE 0 END), 0) AS pending,
-               COALESCE(SUM(CASE WHEN c.status = 'paid' THEN s.buying_price ELSE 0 END), 0) AS paid
-             FROM commissions c
-             JOIN students s ON s.id = c.student_id
-             WHERE s.deleted_at IS NULL;`,
-            { type: "SELECT" as never }
-          );
-          return (Array.isArray(rows) ? rows[0] : rows) as unknown as { pending: string; paid: string } | undefined;
-        })()
-      : undefined;
+    // ============================================================
+    // Admin Revenue (Super Admin only)
+    // ============================================================
+    let revenueRow: { pending: string; paid: string } = { pending: "0", paid: "0" };
 
+    if (isSuperAdmin) {
+      const revenueRows = await sequelize.query<{ pending: string; paid: string }>(
+        `SELECT
+           COALESCE(SUM(CASE WHEN c.status = 'pending' THEN s.buying_price ELSE 0 END), 0) AS pending,
+           COALESCE(SUM(CASE WHEN c.status = 'paid' THEN s.buying_price ELSE 0 END), 0) AS paid
+         FROM commissions c
+         JOIN students s ON s.id = c.student_id
+         WHERE s.deleted_at IS NULL;`,
+        { type: QueryTypes.SELECT }
+      );
+      if (revenueRows.length > 0) revenueRow = revenueRows[0];
+    }
+
+    // ============================================================
     // V9 NEW: Partner-wise receipt summary (Super Admin only)
+    // ============================================================
     let partnerReceipts: Array<{
       partnerId: string;
       partnerName: string;
@@ -73,7 +77,7 @@ export const dashboardService = {
     }> = [];
 
     if (isSuperAdmin) {
-      const [rows] = await sequelize.query<{
+      const rows = await sequelize.query<{
         partnerId: string;
         partnerName: string;
         prepaidCount: string;
@@ -90,14 +94,14 @@ export const dashboardService = {
            COALESCE(SUM(s.buying_price), 0) AS "totalRevenue"
          FROM users u
          LEFT JOIN students s ON s.referral_partner_id = u.id AND s.deleted_at IS NULL
-         WHERE u.role = 'referral_admin' AND u.deleted_at IS NULL
+         WHERE u.role = 'referral_admin'
          GROUP BY u.id, u.full_name
          HAVING COUNT(s.id) > 0
          ORDER BY "totalRevenue" DESC;`,
-        { type: "SELECT" as never }
+        { type: QueryTypes.SELECT }
       );
 
-      partnerReceipts = (Array.isArray(rows) ? rows : []).map((r) => ({
+      partnerReceipts = rows.map((r) => ({
         partnerId: r.partnerId,
         partnerName: r.partnerName,
         prepaidCount: Number(r.prepaidCount),
@@ -127,11 +131,10 @@ export const dashboardService = {
           paid: Number(commissionRow.paid),
         },
         adminRevenue: {
-          pending: Number(revenueRow?.pending ?? 0),
-          paid: Number(revenueRow?.paid ?? 0),
+          pending: Number(revenueRow.pending ?? 0),
+          paid: Number(revenueRow.paid ?? 0),
         },
       },
-      // V9 NEW: per-partner receipt breakdown (Super Admin only)
       partnerReceipts,
       recentStudents: recentStudents.map((s) => s.toJSON()),
     };
