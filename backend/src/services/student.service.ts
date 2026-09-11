@@ -123,10 +123,6 @@ export const studentService = {
     }
   },
 
-  /**
-   * V5 UPDATE: Returns student details. Timeline notes and internal notes are hidden from
-   * referral_admin. Notes array is only included for Super Admin.
-   */
   getById: async (id: string, requester: { id: string; role: string }) => {
     const include: any[] = [
       { model: User, as: "referralPartner", attributes: ["id", "fullName", "mobile", "email"] },
@@ -141,7 +137,6 @@ export const studentService = {
       { model: Commission, as: "commission" },
     ];
 
-    // Only Super Admin sees internal notes
     if (requester.role === "super_admin") {
       include.push({
         model: StudentNote,
@@ -158,12 +153,9 @@ export const studentService = {
 
     const studentJson: any = student.toJSON();
 
-    // Strip timeline notes for referral_admin
     if (requester.role === "referral_admin" && Array.isArray(studentJson.timeline)) {
       studentJson.timeline = studentJson.timeline.map((t: any) => ({ ...t, note: null }));
     }
-
-    // Notes array should never reach referral_admin
     if (requester.role === "referral_admin") {
       delete studentJson.notes;
     }
@@ -173,7 +165,7 @@ export const studentService = {
 
   update: async (
     id: string,
-    updates: Partial<CreateStudentInput> & { buyingPrice?: number },
+    updates: Partial<CreateStudentInput> & { buyingPrice?: number; serviceType?: ServiceType },
     requester: { id: string; role: string }
   ): Promise<Student> => {
     const student = await Student.findByPk(id);
@@ -187,6 +179,22 @@ export const studentService = {
     if (updates.buyingPrice !== undefined && requester.role !== "super_admin") {
       throw ApiError.forbidden("Only Super Admin can change the buying price");
     }
+    if (updates.serviceType !== undefined && requester.role !== "super_admin") {
+      throw ApiError.forbidden("Only Super Admin can change the service type");
+    }
+
+    // ============ V8 NEW: Service type change ============
+    const serviceTypeChanging =
+      updates.serviceType !== undefined && updates.serviceType !== student.serviceType;
+
+    if (serviceTypeChanging) {
+      const existingCommission = await Commission.findOne({ where: { studentId: id } });
+      if (existingCommission && existingCommission.status === "paid") {
+        throw ApiError.badRequest(
+          "Cannot change service type after commission is already paid. Revert the commission to pending first."
+        );
+      }
+    }
 
     const normalized: Record<string, unknown> = {};
     if (updates.fullName !== undefined) normalized.fullName = toTitleCase(updates.fullName);
@@ -195,16 +203,42 @@ export const studentService = {
     if (updates.course !== undefined) normalized.course = toUpperCase(updates.course);
     if (updates.semester !== undefined) normalized.semester = toTitleCase(updates.semester);
     if (updates.sellingPrice !== undefined) normalized.sellingPrice = updates.sellingPrice;
-    if (updates.buyingPrice !== undefined) normalized.buyingPrice = Number(updates.buyingPrice).toFixed(2);
 
     const patch: Record<string, unknown> = { ...normalized };
 
-    const finalBuyingPrice =
-      updates.buyingPrice !== undefined
-        ? Number(updates.buyingPrice)
-        : student.buyingPrice !== null
-        ? Number(student.buyingPrice)
-        : null;
+    let finalBuyingPrice: number | null;
+    let finalServiceType: ServiceType;
+
+    if (serviceTypeChanging && updates.serviceType) {
+      const partner = await User.findByPk(student.referralPartnerId);
+      if (!partner) throw ApiError.notFound("Referral partner not found");
+
+      const rawNewBuyingPrice =
+        updates.serviceType === "prepaid" ? partner.prepaidCost : partner.postpaidCost;
+
+      finalBuyingPrice =
+        rawNewBuyingPrice != null && rawNewBuyingPrice !== ""
+          ? Number(rawNewBuyingPrice)
+          : updates.serviceType === "prepaid"
+          ? 1500
+          : 4500;
+
+      patch.serviceType = updates.serviceType;
+      patch.buyingPrice = finalBuyingPrice.toFixed(2);
+      finalServiceType = updates.serviceType;
+    } else {
+      finalBuyingPrice =
+        updates.buyingPrice !== undefined
+          ? Number(updates.buyingPrice)
+          : student.buyingPrice !== null
+          ? Number(student.buyingPrice)
+          : null;
+
+      if (updates.buyingPrice !== undefined) {
+        patch.buyingPrice = Number(updates.buyingPrice).toFixed(2);
+      }
+      finalServiceType = student.serviceType;
+    }
 
     const finalSellingPrice =
       updates.sellingPrice !== undefined
@@ -223,15 +257,31 @@ export const studentService = {
 
     await student.update(patch);
 
-    if (updates.buyingPrice !== undefined || updates.sellingPrice !== undefined) {
-      const commission = await Commission.findOne({ where: { studentId: id } });
-      if (commission && finalBuyingPrice !== null) {
-        const newPartnerAmount = finalSellingPrice !== null ? finalSellingPrice - finalBuyingPrice : 0;
-        await commission.update({
-          amount: Number(newPartnerAmount.toFixed(2)),
-          adminAmount: Number(finalBuyingPrice.toFixed(2)),
-        });
-      }
+    // ============ Commission handling ============
+    const commission = await Commission.findOne({ where: { studentId: id } });
+
+    const shouldRecomputeCommission =
+      updates.buyingPrice !== undefined ||
+      updates.sellingPrice !== undefined ||
+      serviceTypeChanging;
+
+    if (commission && shouldRecomputeCommission && finalBuyingPrice !== null) {
+      const newPartnerAmount = finalSellingPrice !== null ? finalSellingPrice - finalBuyingPrice : 0;
+      await commission.update({
+        amount: Number(newPartnerAmount.toFixed(2)),
+        adminAmount: Number(finalBuyingPrice.toFixed(2)),
+      });
+    }
+
+    if (serviceTypeChanging && finalServiceType === "prepaid" && !commission && finalBuyingPrice !== null) {
+      const newPartnerAmount = finalSellingPrice !== null ? finalSellingPrice - finalBuyingPrice : 0;
+      await Commission.create({
+        referralPartnerId: student.referralPartnerId,
+        studentId: id,
+        amount: Number(newPartnerAmount.toFixed(2)),
+        adminAmount: Number(finalBuyingPrice.toFixed(2)),
+        status: "pending",
+      });
     }
 
     return student;
@@ -386,9 +436,6 @@ export const studentService = {
     await entry.destroy();
   },
 
-  /**
-   * V5 NEW: Add an internal note to a student. Super Admin only.
-   */
   addNote: async (
     studentId: string,
     note: string,
@@ -408,9 +455,6 @@ export const studentService = {
     });
   },
 
-  /**
-   * V5 NEW: Update an existing internal note. Super Admin only.
-   */
   updateNote: async (
     studentId: string,
     noteId: string,
@@ -428,9 +472,6 @@ export const studentService = {
     return entry;
   },
 
-  /**
-   * V5 NEW: Delete an internal note. Super Admin only.
-   */
   deleteNote: async (
     studentId: string,
     noteId: string,
@@ -569,5 +610,91 @@ export const studentService = {
     }
 
     return result;
+  },
+
+  // ============================================================
+  // V7 NEW: Soft delete, deleted list, restore, permanent delete
+  // ============================================================
+
+  softDeleteStudent: async (
+    id: string,
+    requester: { id: string; role: string }
+  ): Promise<{ id: string; fullName: string }> => {
+    if (requester.role !== "super_admin") {
+      throw ApiError.forbidden("Only Super Admin can delete students");
+    }
+
+    const student = await Student.findByPk(id);
+    if (!student) throw ApiError.notFound("Student not found");
+
+    const name = student.fullName;
+    await student.destroy();
+    return { id, fullName: name };
+  },
+
+  listDeletedStudents: async ({
+    page,
+    pageSize,
+    search,
+  }: {
+    page: number;
+    pageSize: number;
+    search?: string;
+  }) => {
+    const where: any = { deletedAt: { [Op.ne]: null } };
+
+    if (search && search.trim()) {
+      where[Op.or] = [
+        { fullName: { [Op.iLike]: `%${search.trim()}%` } },
+        { mobile: { [Op.iLike]: `%${search.trim()}%` } },
+        { collegeName: { [Op.iLike]: `%${search.trim()}%` } },
+      ];
+    }
+
+    const { rows, count } = await Student.findAndCountAll({
+      where,
+      paranoid: false,
+      include: [{ model: User, as: "referralPartner", attributes: ["id", "fullName", "mobile"] }],
+      order: [["deletedAt", "DESC"]],
+      limit: pageSize,
+      offset: (page - 1) * pageSize,
+    });
+
+    return { items: rows, total: count, page, pageSize, totalPages: Math.ceil(count / pageSize) };
+  },
+
+  restoreStudent: async (
+    id: string,
+    requester: { id: string; role: string }
+  ): Promise<Student> => {
+    if (requester.role !== "super_admin") {
+      throw ApiError.forbidden("Only Super Admin can restore students");
+    }
+
+    const student = await Student.findByPk(id, { paranoid: false });
+    if (!student) throw ApiError.notFound("Student not found");
+    if (!student.deletedAt) throw ApiError.badRequest("Student is not deleted");
+
+    await student.restore();
+    return student;
+  },
+
+  permanentDeleteStudent: async (
+    id: string,
+    requester: { id: string; role: string }
+  ): Promise<{ id: string; fullName: string }> => {
+    if (requester.role !== "super_admin") {
+      throw ApiError.forbidden("Only Super Admin can permanently delete students");
+    }
+
+    const student = await Student.findByPk(id, { paranoid: false });
+    if (!student) throw ApiError.notFound("Student not found");
+    if (!student.deletedAt) {
+      throw ApiError.badRequest("Please delete the student first, then permanently remove");
+    }
+
+    const name = student.fullName;
+    await student.destroy({ force: true });
+    return { id, fullName: name };
   },
 };

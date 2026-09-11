@@ -58,7 +58,6 @@ export const studentService = {
     await api.delete(`/students/${studentId}/timeline/${timelineId}`);
   },
 
-  // V5 NEW: internal notes
   addNote: async (studentId: string, note: string): Promise<StudentNoteItem> => {
     const { data } = await api.post<ApiResponse<StudentNoteItem>>(`/students/${studentId}/notes`, { note });
     return data.data;
@@ -109,5 +108,36 @@ export const studentService = {
       params: { field, search },
     });
     return data.data;
+  },
+
+  // ============================================================
+  // V7 NEW: Soft delete, deleted list, restore, permanent delete
+  // ============================================================
+
+  /** Soft delete a student — moves it to Deleted Students list */
+  softDeleteStudent: async (id: string): Promise<{ id: string; fullName: string }> => {
+    const { data } = await api.delete<ApiResponse<{ id: string; fullName: string }>>(`/students/${id}`);
+    return data.data;
+  },
+
+  /** Get list of soft-deleted students (Super Admin only) */
+  getDeletedStudents: async (params: {
+    page: number;
+    pageSize: number;
+    search?: string;
+  }): Promise<StudentListResult> => {
+    const { data } = await api.get<ApiResponse<StudentListResult>>("/students/deleted", { params });
+    return data.data;
+  },
+
+  /** Restore a soft-deleted student */
+  restoreStudent: async (id: string): Promise<StudentDetails> => {
+    const { data } = await api.post<ApiResponse<StudentDetails>>(`/students/${id}/restore`);
+    return data.data;
+  },
+
+  /** Permanently delete a soft-deleted student (irreversible) */
+  permanentDeleteStudent: async (id: string): Promise<void> => {
+    await api.delete(`/students/${id}/permanent`);
   },
 };

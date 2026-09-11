@@ -2,12 +2,9 @@ import { DataTypes, Model, type CreationOptional, type InferAttributes, type Inf
 import { sequelize } from "@/config/database.config";
 import { User } from "./User";
 
-// V2 UPGRADE: "plan" (2500/5000) renamed to "service_type" (prepaid/postpaid) - this is now a
-// pure business-workflow distinction, decoupled from price. Price lives on buyingPrice/sellingPrice below.
+// V2 UPGRADE: "plan" (2500/5000) renamed to "service_type" (prepaid/postpaid).
 export type ServiceType = "prepaid" | "postpaid";
 export type StudentStatus = "pending" | "verified" | "completed" | "correction_requested";
-// V2: ScholarshipStatus + MYSY fields removed entirely - scholarship progress is now tracked
-// via the 13-stage student_timelines workflow instead of a single status field.
 
 /** Student model - the core entity every other module (documents, payments, timeline, commission) hangs off of. */
 export class Student extends Model<InferAttributes<Student>, InferCreationAttributes<Student>> {
@@ -22,15 +19,13 @@ export class Student extends Model<InferAttributes<Student>, InferCreationAttrib
   declare serviceType: ServiceType;
   declare status: CreationOptional<StudentStatus>;
   declare correctionNote: string | null;
-  // V2: Financial fields - buyingPrice is copied from the partner's prepaidCost/postpaidCost at
-  // creation time (a per-application snapshot, so later changes to a partner's rate don't rewrite
-  // history), sellingPrice is entered by the Referral Partner, partnerProfit is auto-computed.
   declare buyingPrice: string | null;
   declare sellingPrice: string | null;
   declare partnerProfit: string | null;
   declare referralPartnerId: ForeignKey<User["id"]>;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
+  // V7 NEW: soft delete timestamp (enabled by `paranoid: true` below)
   declare deletedAt: CreationOptional<Date | null>;
 }
 
@@ -59,5 +54,10 @@ Student.init(
     updatedAt: DataTypes.DATE,
     deletedAt: DataTypes.DATE,
   },
-  { sequelize, tableName: "students", modelName: "Student" }
+  {
+    sequelize,
+    tableName: "students",
+    modelName: "Student",
+    paranoid: true, // V7 NEW: enables soft delete (uses deletedAt column)
+  }
 );

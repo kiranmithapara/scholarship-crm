@@ -39,6 +39,8 @@ export const updateStudentSchema = z.object({
     universityName: z.string().trim().max(200).optional(),
     course: z.string().trim().max(150).optional(),
     semester: z.string().trim().max(20).optional(),
+    // V8 NEW: Super Admin can change service type (prepaid ↔ postpaid)
+    serviceType: z.enum(["prepaid", "postpaid"]).optional(),
     sellingPrice: z.coerce.number().positive().optional().nullable(),
     buyingPrice: z.coerce.number().nonnegative().optional(),
   }),
@@ -103,7 +105,6 @@ export const timelineEntryParamSchema = z.object({
   }),
 });
 
-// V5 NEW: internal notes validators
 export const addNoteSchema = z.object({
   params: z.object({ id: z.string().uuid("Invalid student id") }),
   body: z.object({

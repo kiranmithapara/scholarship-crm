@@ -20,6 +20,8 @@ export const ROUTES = {
   // Shared with role-based scoping
   STUDENTS: "/students",
   STUDENT_DETAILS: "/students/:id",
+  EDIT_STUDENT: "/students/:id/edit",
+  DELETED_STUDENTS: "/students/deleted",
 
   // Referral Admin only
   APPLY_SCHOLARSHIP: "/applications/apply",

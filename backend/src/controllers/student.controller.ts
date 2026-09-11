@@ -174,4 +174,51 @@ export const studentController = {
     );
     ApiResponse.ok(res, suggestions, "Suggestions fetched");
   }),
+
+    // V7 NEW: Soft delete / restore / permanent delete
+  softDelete: asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) throw ApiError.unauthorized();
+    const result = await studentService.softDeleteStudent(req.params.id as string, req.user);
+    await activityLogService.logActivity(req, {
+      userId: req.user.id,
+      action: "STUDENT_SOFT_DELETED",
+      details: { studentId: req.params.id, fullName: result.fullName },
+    });
+    ApiResponse.ok(res, result, "Student moved to Deleted Students");
+  }),
+
+  listDeleted: asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) throw ApiError.unauthorized();
+    if (req.user.role !== "super_admin") throw ApiError.forbidden("Only Super Admin can view deleted students");
+
+    const { page, pageSize, search } = req.query as unknown as {
+      page: number;
+      pageSize: number;
+      search?: string;
+    };
+    const result = await studentService.listDeletedStudents({ page, pageSize, search });
+    ApiResponse.ok(res, result, "Deleted students fetched successfully");
+  }),
+
+  restore: asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) throw ApiError.unauthorized();
+    const student = await studentService.restoreStudent(req.params.id as string, req.user);
+    await activityLogService.logActivity(req, {
+      userId: req.user.id,
+      action: "STUDENT_RESTORED",
+      details: { studentId: student.id, fullName: student.fullName },
+    });
+    ApiResponse.ok(res, student, "Student restored successfully");
+  }),
+
+  permanentDelete: asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) throw ApiError.unauthorized();
+    const result = await studentService.permanentDeleteStudent(req.params.id as string, req.user);
+    await activityLogService.logActivity(req, {
+      userId: req.user.id,
+      action: "STUDENT_PERMANENTLY_DELETED",
+      details: { studentId: req.params.id, fullName: result.fullName },
+    });
+    ApiResponse.ok(res, null, "Student permanently deleted");
+  }),
 };

@@ -8,12 +8,6 @@ import { ROUTES } from "@/constants/routes.constant";
 import { ROLES } from "@/constants/roles.constant";
 const AdminNotesPage = lazy(() => import("@/pages/notes/AdminNotesPage"));
 
-
-/**
- * Lazy-loaded pages - Code Splitting.
- * Har page apna own JS chunk banata hai, sirf jab wo route visit ho tab load hota hai.
- * Isse initial bundle size chota rehta hai -> fast first load.
- */
 const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
 const RegisterPage = lazy(() => import("@/pages/auth/RegisterPage"));
 const VerifyOtpPage = lazy(() => import("@/pages/auth/VerifyOtpPage"));
@@ -25,6 +19,8 @@ const ReferralPartnerListPage = lazy(() => import("@/pages/referral-partners/Ref
 const ReferralPartnerProfilePage = lazy(() => import("@/pages/referral-partners/ReferralPartnerProfilePage"));
 const StudentListPage = lazy(() => import("@/pages/students/StudentListPage"));
 const StudentDetailsPage = lazy(() => import("@/pages/students/StudentDetailsPage"));
+const EditStudentPage = lazy(() => import("@/pages/students/EditStudentPage"));
+const DeletedStudentsPage = lazy(() => import("@/pages/students/DeletedStudentsPage"));
 const MyStudentsPage = lazy(() => import("@/pages/students/MyStudentsPage"));
 const ApplyScholarshipPage = lazy(() => import("@/pages/applications/ApplyScholarshipPage"));
 const ProfilePage = lazy(() => import("@/pages/profile/ProfilePage"));
@@ -45,7 +41,7 @@ export function AppRoutes() {
         <Route path={ROUTES.VERIFY_OTP} element={<VerifyOtpPage />} />
         <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
 
-        {/* ---------- Protected Routes (login required) ---------- */}
+        {/* ---------- Protected Routes ---------- */}
         <Route element={<ProtectedRoute />}>
           <Route element={<DashboardLayout />}>
             {/* Shared between both roles */}
@@ -53,18 +49,20 @@ export function AppRoutes() {
             <Route path={ROUTES.PROFILE} element={<ProfilePage />} />
             <Route path={ROUTES.STUDENT_DETAILS} element={<StudentDetailsPage />} />
 
-            {/* ---------- Super Admin only ---------- */}
+            {/* Super Admin only */}
             <Route element={<RoleBasedRoute allowedRoles={[ROLES.SUPER_ADMIN]} />}>
               <Route path={ROUTES.REFERRAL_PARTNERS} element={<ReferralPartnerListPage />} />
               <Route path={ROUTES.REFERRAL_PARTNER_DETAILS} element={<ReferralPartnerProfilePage />} />
               <Route path={ROUTES.STUDENTS} element={<StudentListPage />} />
+              <Route path={ROUTES.EDIT_STUDENT} element={<EditStudentPage />} />
+              <Route path={ROUTES.DELETED_STUDENTS} element={<DeletedStudentsPage />} />
               <Route path={ROUTES.SETTINGS} element={<SettingsPage />} />
               <Route path={ROUTES.LOGIN_LOGS} element={<LoginLogsPage />} />
               <Route path={ROUTES.ACTIVITY_LOGS} element={<ActivityLogsPage />} />
               <Route path={ROUTES.ADMIN_NOTES} element={<AdminNotesPage />} />
             </Route>
 
-            {/* ---------- Referral Admin only ---------- */}
+            {/* Referral Admin only */}
             <Route element={<RoleBasedRoute allowedRoles={[ROLES.REFERRAL_ADMIN]} />}>
               <Route path={ROUTES.APPLY_SCHOLARSHIP} element={<ApplyScholarshipPage />} />
               <Route path={ROUTES.MY_STUDENTS} element={<MyStudentsPage />} />
@@ -74,7 +72,7 @@ export function AppRoutes() {
           </Route>
         </Route>
 
-        {/* ---------- Fallback ---------- */}
+        {/* Fallback */}
         <Route path="/" element={<Navigate to={ROUTES.DASHBOARD} replace />} />
         <Route path={ROUTES.NOT_FOUND} element={<NotFoundPage />} />
       </Routes>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { isAxiosError } from "axios";
 import {
@@ -37,7 +37,7 @@ import { useStudentDetails } from "@/hooks/useStudentDetails";
 import { useAuth } from "@/hooks/useAuth";
 import { studentService } from "@/services/student.service";
 import { formatDate, formatDateTime, formatCurrency } from "@/lib/utils";
-import { ROUTES } from "@/constants/routes.constant";
+import { ROUTES, buildPath } from "@/constants/routes.constant";
 import { ROLES } from "@/constants/roles.constant";
 import type { DocumentType, TimelineEvent } from "@/types/student.types";
 import type { ActivityLogItem } from "@/types/logs.types";
@@ -72,9 +72,9 @@ const CORE_STAGES: TimelineEvent[] = [
 export default function StudentDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { data: student, isLoading, error, refetch } = useStudentDetails(id);
 
-  // V6 NEW: Controlled tab state - keeps user on current tab after any action
   const [activeTab, setActiveTab] = useState("overview");
 
   const [selectedStage, setSelectedStage] = useState<TimelineEvent | "">("");
@@ -99,6 +99,9 @@ export default function StudentDetailsPage() {
   const [isSavingInternalNote, setIsSavingInternalNote] = useState(false);
   const [deletingInternalNoteId, setDeletingInternalNoteId] = useState<string | null>(null);
   const [isDeletingInternalNote, setIsDeletingInternalNote] = useState(false);
+
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isDeletingStudent, setIsDeletingStudent] = useState(false);
 
   const [activityLogs, setActivityLogs] = useState<ActivityLogItem[] | null>(null);
   const [activityLoading, setActivityLoading] = useState(true);
@@ -296,6 +299,20 @@ export default function StudentDetailsPage() {
     }
   };
 
+  const handleSoftDeleteStudent = async () => {
+    setIsDeletingStudent(true);
+    try {
+      await studentService.softDeleteStudent(student.id);
+      toast.success("Student moved to Deleted Students");
+      setIsDeleteConfirmOpen(false);
+      navigate(ROUTES.STUDENTS);
+    } catch (err) {
+      const message = isAxiosError(err) ? err.response?.data?.message : null;
+      toast.error(message ?? "Could not delete student");
+      setIsDeletingStudent(false);
+    }
+  };
+
   return (
     <div className="space-y-6 p-4 sm:p-6">
       <Link
@@ -316,8 +333,24 @@ export default function StudentDetailsPage() {
               {student.collegeName} • {student.serviceType} Service • Referred by {student.referralPartner.fullName}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <QuickActions mobile={student.mobile} whatsappMessage={`Hi ${student.fullName}, `} />
+            {isSuperAdmin && (
+              <>
+                <Button variant="outline" size="sm" asChild>
+                  <Link to={buildPath(ROUTES.EDIT_STUDENT, { id: student.id })}>
+                    <Pencil className="mr-1.5 h-3.5 w-3.5" /> Edit
+                  </Link>
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setIsDeleteConfirmOpen(true)}
+                >
+                  <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete
+                </Button>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -334,7 +367,6 @@ export default function StudentDetailsPage() {
         </Card>
       )}
 
-      {/* V6: Controlled tabs - stays on current tab after actions */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="flex-wrap">
           <TabsTrigger value="overview"><UserIcon className="mr-1.5 h-3.5 w-3.5" />Overview</TabsTrigger>
@@ -864,6 +896,18 @@ export default function StudentDetailsPage() {
         variant="destructive"
         isLoading={isDeletingInternalNote}
         onConfirm={handleDeleteInternalNote}
+      />
+
+      {/* Delete Student Confirmation */}
+      <ConfirmDialog
+        open={isDeleteConfirmOpen}
+        onOpenChange={setIsDeleteConfirmOpen}
+        title="Delete this student?"
+        description="The student will be moved to the Deleted Students list. You can restore or permanently delete them from there. This action is reversible."
+        confirmLabel="Delete Student"
+        variant="destructive"
+        isLoading={isDeletingStudent}
+        onConfirm={handleSoftDeleteStudent}
       />
     </div>
   );
