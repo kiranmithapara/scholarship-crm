@@ -14,7 +14,8 @@ import {
 import { motion } from "framer-motion";
 import { StatCard } from "@/components/common/StatCard";
 import { PartnerReceiptsChart } from "@/components/charts/PartnerReceiptsChart";
-import { PaidRevenueDonutChart } from "@/components/charts/PaidRevenueDonutChart";
+import { RevenueDonutChart, GREEN_PALETTE, AMBER_PALETTE } from "@/components/charts/RevenueDonutChart";
+import { PostpaidApplicationsDonut } from "@/components/charts/PostpaidApplicationsDonut";
 import { RecentStudentsTable } from "@/components/tables/RecentStudentsTable";
 import { ErrorState } from "@/components/common/ErrorState";
 import { Button } from "@/components/ui/button";
@@ -43,16 +44,13 @@ export default function DashboardPage() {
 
   const isSuperAdmin = user?.role === ROLES.SUPER_ADMIN;
 
-  // V9 NEW: filters
   const [period, setPeriod] = useState<string>("all");
   const [partnerFilter, setPartnerFilter] = useState<string>("all");
   const [partners, setPartners] = useState<{ id: string; fullName: string }[]>([]);
 
-  // V9 NEW: partner receipts data
   const [receiptsData, setReceiptsData] = useState<PartnerReceiptsResponse | null>(null);
   const [receiptsLoading, setReceiptsLoading] = useState(true);
 
-  // Fetch partner list for filter dropdown (Super Admin only)
   useEffect(() => {
     if (!isSuperAdmin) return;
     partnerService
@@ -66,7 +64,6 @@ export default function DashboardPage() {
       .catch(() => setPartners([]));
   }, [isSuperAdmin]);
 
-  // Fetch partner receipts whenever filters change
   useEffect(() => {
     if (!isSuperAdmin) return;
     setReceiptsLoading(true);
@@ -75,7 +72,16 @@ export default function DashboardPage() {
       .then(setReceiptsData)
       .catch(() => {
         toast.error("Could not load partner receipts");
-        setReceiptsData({ items: [], totals: { totalReceipts: 0, pendingRevenue: 0, paidRevenue: 0, totalRevenue: 0, paidStudentsCount: 0 } });
+        setReceiptsData({
+          items: [],
+          totals: {
+            totalReceipts: 0,
+            pendingRevenue: 0,
+            paidRevenue: 0,
+            totalRevenue: 0,
+            paidStudentsCount: 0,
+          },
+        });
       })
       .finally(() => setReceiptsLoading(false));
   }, [isSuperAdmin, period, partnerFilter]);
@@ -128,7 +134,7 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* V9 NEW: Receipts section with filter */}
+      {/* Receipts section */}
       {isSuperAdmin && (
         <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -220,19 +226,46 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Charts side by side */}
+          {/* Bar chart + Paid donut */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <div className="lg:col-span-2">
               <PartnerReceiptsChart data={receiptsData?.items ?? []} isLoading={receiptsLoading} />
             </div>
             <div className="lg:col-span-1">
-              <PaidRevenueDonutChart
-                data={receiptsData?.items ?? []}
-                totalPaid={receiptsData?.totals.paidRevenue ?? 0}
-                paidStudentsCount={receiptsData?.totals.paidStudentsCount ?? 0}
+              <RevenueDonutChart
+                title="Paid Revenue Split"
+                items={(receiptsData?.items ?? []).map((p) => ({
+                  name: p.partnerName,
+                  value: p.paidRevenue,
+                  students: p.paidStudentsCount,
+                }))}
+                total={receiptsData?.totals.paidRevenue ?? 0}
+                totalLabel="Total Paid"
+                studentsCount={receiptsData?.totals.paidStudentsCount ?? 0}
+                emptyTitle="No paid revenue yet"
+                emptyDescription="When partner commissions are marked as paid, the split will appear here."
+                palette={GREEN_PALETTE}
                 isLoading={receiptsLoading}
               />
             </div>
+          </div>
+
+          {/* Pending donut + Postpaid applications donut */}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <RevenueDonutChart
+              title="Pending Revenue Split"
+              items={(receiptsData?.items ?? []).map((p) => ({
+                name: p.partnerName,
+                value: p.pendingRevenue,
+              }))}
+              total={receiptsData?.totals.pendingRevenue ?? 0}
+              totalLabel="Total Pending"
+              emptyTitle="No pending revenue"
+              emptyDescription="Pending prepaid receipts will appear here."
+              palette={AMBER_PALETTE}
+              isLoading={receiptsLoading}
+            />
+            <PostpaidApplicationsDonut data={receiptsData?.items ?? []} isLoading={receiptsLoading} />
           </div>
         </motion.div>
       )}

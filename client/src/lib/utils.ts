@@ -73,3 +73,11 @@ export function getFileUrl(url?: string | null): string | undefined {
   const apiBase = (import.meta.env.VITE_API_URL || defaultApiUrl).replace(/\/api\/v1\/?$/, "");
   return `${apiBase}${url.startsWith("/") ? "" : "/"}${url}`;
 }
+
+/** Format number as compact Indian Rupee (₹2k, ₹15k, ₹2.5L, ₹1.2Cr) */
+export function formatCompactCurrency(amount: number): string {
+  if (amount >= 10000000) return `₹${(amount / 10000000).toFixed(1)}Cr`;
+  if (amount >= 100000) return `₹${(amount / 100000).toFixed(1)}L`;
+  if (amount >= 1000) return `₹${(amount / 1000).toFixed(amount % 1000 === 0 ? 0 : 1)}k`;
+  return `₹${amount}`;
+}
