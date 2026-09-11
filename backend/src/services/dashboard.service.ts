@@ -1,4 +1,4 @@
-import { Op, QueryTypes } from "sequelize";
+import { QueryTypes } from "sequelize";
 import { Student, User } from "@/models";
 import { sequelize } from "@/config/database.config";
 
