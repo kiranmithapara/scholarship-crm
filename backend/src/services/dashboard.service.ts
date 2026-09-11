@@ -163,15 +163,15 @@ export const dashboardService = {
         COUNT(DISTINCT s.id) AS "totalReceipts",
         COUNT(DISTINCT CASE WHEN s.service_type = 'prepaid' THEN s.id END) AS "prepaidCount",
         COUNT(DISTINCT CASE WHEN s.service_type = 'postpaid' THEN s.id END) AS "postpaidCount",
-        -- Total Receipt Revenue (Selling Price / Receipt Value, e.g. Lalit's 5000)
-        COALESCE(SUM(CASE WHEN c.status = 'pending' OR c.status IS NULL THEN COALESCE(s.selling_price, s.buying_price, 0) ELSE 0 END), 0) AS "pendingRevenue",
-        COALESCE(SUM(CASE WHEN c.status = 'paid' OR s.status = 'completed' THEN COALESCE(s.selling_price, s.buying_price, 0) ELSE 0 END), 0) AS "paidRevenue",
-        -- Prepaid Receipt Revenue
-        COALESCE(SUM(CASE WHEN s.service_type = 'prepaid' AND (c.status = 'pending' OR c.status IS NULL) THEN COALESCE(s.selling_price, s.buying_price, 0) ELSE 0 END), 0) AS "prepaidPendingRevenue",
-        COALESCE(SUM(CASE WHEN s.service_type = 'prepaid' AND (c.status = 'paid' OR s.status = 'completed') THEN COALESCE(s.selling_price, s.buying_price, 0) ELSE 0 END), 0) AS "prepaidPaidRevenue",
-        -- Postpaid Receipt Revenue
-        COALESCE(SUM(CASE WHEN s.service_type = 'postpaid' AND (c.status = 'pending' OR c.status IS NULL) THEN COALESCE(s.selling_price, s.buying_price, 0) ELSE 0 END), 0) AS "postpaidPendingRevenue",
-        COALESCE(SUM(CASE WHEN s.service_type = 'postpaid' AND (c.status = 'paid' OR s.status = 'completed') THEN COALESCE(s.selling_price, s.buying_price, 0) ELSE 0 END), 0) AS "postpaidPaidRevenue",
+        -- Total Admin Revenue (Partner to Admin price: s.buying_price)
+        COALESCE(SUM(CASE WHEN c.status = 'pending' OR c.status IS NULL THEN s.buying_price ELSE 0 END), 0) AS "pendingRevenue",
+        COALESCE(SUM(CASE WHEN c.status = 'paid' OR s.status = 'completed' THEN s.buying_price ELSE 0 END), 0) AS "paidRevenue",
+        -- Prepaid Admin Revenue
+        COALESCE(SUM(CASE WHEN s.service_type = 'prepaid' AND (c.status = 'pending' OR c.status IS NULL) THEN s.buying_price ELSE 0 END), 0) AS "prepaidPendingRevenue",
+        COALESCE(SUM(CASE WHEN s.service_type = 'prepaid' AND (c.status = 'paid' OR s.status = 'completed') THEN s.buying_price ELSE 0 END), 0) AS "prepaidPaidRevenue",
+        -- Postpaid Admin Revenue
+        COALESCE(SUM(CASE WHEN s.service_type = 'postpaid' AND (c.status = 'pending' OR c.status IS NULL) THEN s.buying_price ELSE 0 END), 0) AS "postpaidPendingRevenue",
+        COALESCE(SUM(CASE WHEN s.service_type = 'postpaid' AND (c.status = 'paid' OR s.status = 'completed') THEN s.buying_price ELSE 0 END), 0) AS "postpaidPaidRevenue",
         -- Commission breakdowns (Partner Share)
         COALESCE(SUM(CASE WHEN c.status = 'pending' OR c.status IS NULL THEN COALESCE(c.amount, s.partner_profit, 0) ELSE 0 END), 0) AS "pendingCommission",
         COALESCE(SUM(CASE WHEN c.status = 'paid' OR s.status = 'completed' THEN COALESCE(c.amount, s.partner_profit, 0) ELSE 0 END), 0) AS "paidCommission",
