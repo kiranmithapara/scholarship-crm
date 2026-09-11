@@ -28,18 +28,18 @@ export const dashboardService = {
       Student.count({ where: { ...studentWhere, status: "completed" } }),
       sequelize.query<any>(
         `SELECT
-           COALESCE(SUM(c.amount), 0) AS "total",
-           COALESCE(SUM(CASE WHEN c.status = 'pending' THEN c.amount ELSE 0 END), 0) AS "pending",
-           COALESCE(SUM(CASE WHEN c.status = 'paid' THEN c.amount ELSE 0 END), 0) AS "paid",
-           COALESCE(SUM(CASE WHEN s.service_type = 'postpaid' THEN c.amount ELSE 0 END), 0) AS "postpaidTotal",
-           COALESCE(SUM(CASE WHEN s.service_type = 'postpaid' AND c.status = 'pending' THEN c.amount ELSE 0 END), 0) AS "postpaidPending",
-           COALESCE(SUM(CASE WHEN s.service_type = 'postpaid' AND c.status = 'paid' THEN c.amount ELSE 0 END), 0) AS "postpaidPaid",
-           COALESCE(SUM(CASE WHEN s.service_type = 'prepaid' THEN c.amount ELSE 0 END), 0) AS "prepaidTotal",
-           COALESCE(SUM(CASE WHEN s.service_type = 'prepaid' AND c.status = 'pending' THEN c.amount ELSE 0 END), 0) AS "prepaidPending",
-           COALESCE(SUM(CASE WHEN s.service_type = 'prepaid' AND c.status = 'paid' THEN c.amount ELSE 0 END), 0) AS "prepaidPaid"
-         FROM commissions c
-         JOIN students s ON s.id = c.student_id
-         WHERE s.deleted_at IS NULL ${isSuperAdmin ? "" : "AND c.referral_partner_id = :userId"};`,
+           COALESCE(SUM(COALESCE(c.amount, s.partner_profit, 0)), 0) AS "total",
+           COALESCE(SUM(CASE WHEN c.status = 'pending' OR c.status IS NULL THEN COALESCE(c.amount, s.partner_profit, 0) ELSE 0 END), 0) AS "pending",
+           COALESCE(SUM(CASE WHEN c.status = 'paid' OR s.status = 'completed' THEN COALESCE(c.amount, s.partner_profit, 0) ELSE 0 END), 0) AS "paid",
+           COALESCE(SUM(CASE WHEN s.service_type = 'postpaid' THEN COALESCE(c.amount, s.partner_profit, 0) ELSE 0 END), 0) AS "postpaidTotal",
+           COALESCE(SUM(CASE WHEN s.service_type = 'postpaid' AND (c.status = 'pending' OR c.status IS NULL) THEN COALESCE(c.amount, s.partner_profit, 0) ELSE 0 END), 0) AS "postpaidPending",
+           COALESCE(SUM(CASE WHEN s.service_type = 'postpaid' AND (c.status = 'paid' OR s.status = 'completed') THEN COALESCE(c.amount, s.partner_profit, 0) ELSE 0 END), 0) AS "postpaidPaid",
+           COALESCE(SUM(CASE WHEN s.service_type = 'prepaid' THEN COALESCE(c.amount, s.partner_profit, 0) ELSE 0 END), 0) AS "prepaidTotal",
+           COALESCE(SUM(CASE WHEN s.service_type = 'prepaid' AND (c.status = 'pending' OR c.status IS NULL) THEN COALESCE(c.amount, s.partner_profit, 0) ELSE 0 END), 0) AS "prepaidPending",
+           COALESCE(SUM(CASE WHEN s.service_type = 'prepaid' AND (c.status = 'paid' OR s.status = 'completed') THEN COALESCE(c.amount, s.partner_profit, 0) ELSE 0 END), 0) AS "prepaidPaid"
+         FROM students s
+         LEFT JOIN commissions c ON c.student_id = s.id
+         WHERE s.deleted_at IS NULL ${isSuperAdmin ? "" : "AND s.referral_partner_id = :userId"};`,
         {
           replacements: isSuperAdmin ? {} : { userId: user.id },
           type: QueryTypes.SELECT,
@@ -69,16 +69,16 @@ export const dashboardService = {
       const revenueRows = await sequelize.query<any>(
         `SELECT
            COALESCE(SUM(s.buying_price), 0) AS total,
-           COALESCE(SUM(CASE WHEN c.status = 'pending' THEN s.buying_price ELSE 0 END), 0) AS pending,
-           COALESCE(SUM(CASE WHEN c.status = 'paid' THEN s.buying_price ELSE 0 END), 0) AS paid,
+           COALESCE(SUM(CASE WHEN c.status = 'pending' OR c.status IS NULL THEN s.buying_price ELSE 0 END), 0) AS pending,
+           COALESCE(SUM(CASE WHEN c.status = 'paid' OR s.status = 'completed' THEN s.buying_price ELSE 0 END), 0) AS paid,
            COALESCE(SUM(CASE WHEN s.service_type = 'postpaid' THEN s.buying_price ELSE 0 END), 0) AS "postpaidTotal",
-           COALESCE(SUM(CASE WHEN s.service_type = 'postpaid' AND c.status = 'pending' THEN s.buying_price ELSE 0 END), 0) AS "postpaidPending",
-           COALESCE(SUM(CASE WHEN s.service_type = 'postpaid' AND c.status = 'paid' THEN s.buying_price ELSE 0 END), 0) AS "postpaidPaid",
+           COALESCE(SUM(CASE WHEN s.service_type = 'postpaid' AND (c.status = 'pending' OR c.status IS NULL) THEN s.buying_price ELSE 0 END), 0) AS "postpaidPending",
+           COALESCE(SUM(CASE WHEN s.service_type = 'postpaid' AND (c.status = 'paid' OR s.status = 'completed') THEN s.buying_price ELSE 0 END), 0) AS "postpaidPaid",
            COALESCE(SUM(CASE WHEN s.service_type = 'prepaid' THEN s.buying_price ELSE 0 END), 0) AS "prepaidTotal",
-           COALESCE(SUM(CASE WHEN s.service_type = 'prepaid' AND c.status = 'pending' THEN s.buying_price ELSE 0 END), 0) AS "prepaidPending",
-           COALESCE(SUM(CASE WHEN s.service_type = 'prepaid' AND c.status = 'paid' THEN s.buying_price ELSE 0 END), 0) AS "prepaidPaid"
-         FROM commissions c
-         JOIN students s ON s.id = c.student_id
+           COALESCE(SUM(CASE WHEN s.service_type = 'prepaid' AND (c.status = 'pending' OR c.status IS NULL) THEN s.buying_price ELSE 0 END), 0) AS "prepaidPending",
+           COALESCE(SUM(CASE WHEN s.service_type = 'prepaid' AND (c.status = 'paid' OR s.status = 'completed') THEN s.buying_price ELSE 0 END), 0) AS "prepaidPaid"
+         FROM students s
+         LEFT JOIN commissions c ON c.student_id = s.id
          WHERE s.deleted_at IS NULL;`,
         { type: QueryTypes.SELECT }
       );
@@ -163,26 +163,26 @@ export const dashboardService = {
         COUNT(DISTINCT s.id) AS "totalReceipts",
         COUNT(DISTINCT CASE WHEN s.service_type = 'prepaid' THEN s.id END) AS "prepaidCount",
         COUNT(DISTINCT CASE WHEN s.service_type = 'postpaid' THEN s.id END) AS "postpaidCount",
-        -- Total Admin Revenue
-        COALESCE(SUM(CASE WHEN c.status = 'pending' THEN s.buying_price ELSE 0 END), 0) AS "pendingRevenue",
-        COALESCE(SUM(CASE WHEN c.status = 'paid' THEN s.buying_price ELSE 0 END), 0) AS "paidRevenue",
-        -- Prepaid Admin Revenue
-        COALESCE(SUM(CASE WHEN s.service_type = 'prepaid' AND c.status = 'pending' THEN s.buying_price ELSE 0 END), 0) AS "prepaidPendingRevenue",
-        COALESCE(SUM(CASE WHEN s.service_type = 'prepaid' AND c.status = 'paid' THEN s.buying_price ELSE 0 END), 0) AS "prepaidPaidRevenue",
-        -- Postpaid Admin Revenue
-        COALESCE(SUM(CASE WHEN s.service_type = 'postpaid' AND c.status = 'pending' THEN s.buying_price ELSE 0 END), 0) AS "postpaidPendingRevenue",
-        COALESCE(SUM(CASE WHEN s.service_type = 'postpaid' AND c.status = 'paid' THEN s.buying_price ELSE 0 END), 0) AS "postpaidPaidRevenue",
-        -- Commission breakdowns
-        COALESCE(SUM(CASE WHEN c.status = 'pending' THEN c.amount ELSE 0 END), 0) AS "pendingCommission",
-        COALESCE(SUM(CASE WHEN c.status = 'paid' THEN c.amount ELSE 0 END), 0) AS "paidCommission",
-        COALESCE(SUM(CASE WHEN s.service_type = 'postpaid' AND c.status = 'pending' THEN c.amount ELSE 0 END), 0) AS "postpaidPendingCommission",
-        COALESCE(SUM(CASE WHEN s.service_type = 'postpaid' AND c.status = 'paid' THEN c.amount ELSE 0 END), 0) AS "postpaidPaidCommission",
-        COALESCE(SUM(CASE WHEN s.service_type = 'prepaid' AND c.status = 'pending' THEN c.amount ELSE 0 END), 0) AS "prepaidPendingCommission",
-        COALESCE(SUM(CASE WHEN s.service_type = 'prepaid' AND c.status = 'paid' THEN c.amount ELSE 0 END), 0) AS "prepaidPaidCommission",
+        -- Total Receipt Revenue (Selling Price / Receipt Value, e.g. Lalit's 5000)
+        COALESCE(SUM(CASE WHEN c.status = 'pending' OR c.status IS NULL THEN COALESCE(s.selling_price, s.buying_price, 0) ELSE 0 END), 0) AS "pendingRevenue",
+        COALESCE(SUM(CASE WHEN c.status = 'paid' OR s.status = 'completed' THEN COALESCE(s.selling_price, s.buying_price, 0) ELSE 0 END), 0) AS "paidRevenue",
+        -- Prepaid Receipt Revenue
+        COALESCE(SUM(CASE WHEN s.service_type = 'prepaid' AND (c.status = 'pending' OR c.status IS NULL) THEN COALESCE(s.selling_price, s.buying_price, 0) ELSE 0 END), 0) AS "prepaidPendingRevenue",
+        COALESCE(SUM(CASE WHEN s.service_type = 'prepaid' AND (c.status = 'paid' OR s.status = 'completed') THEN COALESCE(s.selling_price, s.buying_price, 0) ELSE 0 END), 0) AS "prepaidPaidRevenue",
+        -- Postpaid Receipt Revenue
+        COALESCE(SUM(CASE WHEN s.service_type = 'postpaid' AND (c.status = 'pending' OR c.status IS NULL) THEN COALESCE(s.selling_price, s.buying_price, 0) ELSE 0 END), 0) AS "postpaidPendingRevenue",
+        COALESCE(SUM(CASE WHEN s.service_type = 'postpaid' AND (c.status = 'paid' OR s.status = 'completed') THEN COALESCE(s.selling_price, s.buying_price, 0) ELSE 0 END), 0) AS "postpaidPaidRevenue",
+        -- Commission breakdowns (Partner Share)
+        COALESCE(SUM(CASE WHEN c.status = 'pending' OR c.status IS NULL THEN COALESCE(c.amount, s.partner_profit, 0) ELSE 0 END), 0) AS "pendingCommission",
+        COALESCE(SUM(CASE WHEN c.status = 'paid' OR s.status = 'completed' THEN COALESCE(c.amount, s.partner_profit, 0) ELSE 0 END), 0) AS "paidCommission",
+        COALESCE(SUM(CASE WHEN s.service_type = 'postpaid' AND (c.status = 'pending' OR c.status IS NULL) THEN COALESCE(c.amount, s.partner_profit, 0) ELSE 0 END), 0) AS "postpaidPendingCommission",
+        COALESCE(SUM(CASE WHEN s.service_type = 'postpaid' AND (c.status = 'paid' OR s.status = 'completed') THEN COALESCE(c.amount, s.partner_profit, 0) ELSE 0 END), 0) AS "postpaidPaidCommission",
+        COALESCE(SUM(CASE WHEN s.service_type = 'prepaid' AND (c.status = 'pending' OR c.status IS NULL) THEN COALESCE(c.amount, s.partner_profit, 0) ELSE 0 END), 0) AS "prepaidPendingCommission",
+        COALESCE(SUM(CASE WHEN s.service_type = 'prepaid' AND (c.status = 'paid' OR s.status = 'completed') THEN COALESCE(c.amount, s.partner_profit, 0) ELSE 0 END), 0) AS "prepaidPaidCommission",
         -- Student counts
-        COUNT(DISTINCT CASE WHEN c.status = 'paid' THEN s.id END) AS "paidStudentsCount",
-        COUNT(DISTINCT CASE WHEN s.service_type = 'prepaid' AND c.status = 'paid' THEN s.id END) AS "prepaidPaidStudentsCount",
-        COUNT(DISTINCT CASE WHEN s.service_type = 'postpaid' AND c.status = 'paid' THEN s.id END) AS "postpaidPaidStudentsCount"
+        COUNT(DISTINCT CASE WHEN c.status = 'paid' OR s.status = 'completed' THEN s.id END) AS "paidStudentsCount",
+        COUNT(DISTINCT CASE WHEN s.service_type = 'prepaid' AND (c.status = 'paid' OR s.status = 'completed') THEN s.id END) AS "prepaidPaidStudentsCount",
+        COUNT(DISTINCT CASE WHEN s.service_type = 'postpaid' AND (c.status = 'paid' OR s.status = 'completed') THEN s.id END) AS "postpaidPaidStudentsCount"
       FROM users u
       INNER JOIN students s ON s.referral_partner_id = u.id AND s.deleted_at IS NULL
       LEFT JOIN commissions c ON c.student_id = s.id

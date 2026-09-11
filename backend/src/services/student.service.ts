@@ -77,15 +77,13 @@ export const studentService = {
       createdBy,
     });
 
-    if (input.serviceType === "prepaid") {
-      await Commission.create({
-        referralPartnerId,
-        studentId: student.id,
-        amount: hasSellingPrice ? Number(partnerProfit!.toFixed(2)) : 0,
-        adminAmount: Number(Number(buyingPrice).toFixed(2)),
-        status: "pending",
-      });
-    }
+    await Commission.create({
+      referralPartnerId,
+      studentId: student.id,
+      amount: hasSellingPrice ? Number(partnerProfit!.toFixed(2)) : 0,
+      adminAmount: Number(Number(buyingPrice).toFixed(2)),
+      status: "pending",
+    });
 
     return student;
   },
