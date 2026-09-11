@@ -2,7 +2,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/common/EmptyState";
-import { Wallet, IndianRupee } from "lucide-react";
+import { IndianRupee } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
 interface CommissionHisabDonutProps {
