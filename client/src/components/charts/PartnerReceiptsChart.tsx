@@ -17,20 +17,36 @@ import type { PartnerReceiptItem } from "@/types/dashboard.types";
 import { formatCurrency, formatCompactCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
+export type ChartMode = "all" | "prepaid" | "postpaid";
+
 interface PartnerReceiptsChartProps {
   data: PartnerReceiptItem[];
   isLoading?: boolean;
+  mode?: ChartMode;
+  onModeChange?: (mode: ChartMode) => void;
 }
-
-type ChartMode = "all" | "prepaid" | "postpaid";
 
 const COLORS = {
   pending: "#f59e0b",
   paid: "#10b981",
 };
 
-export function PartnerReceiptsChart({ data, isLoading }: PartnerReceiptsChartProps) {
-  const [mode, setMode] = useState<ChartMode>("all");
+export function PartnerReceiptsChart({
+  data,
+  isLoading,
+  mode: controlledMode,
+  onModeChange,
+}: PartnerReceiptsChartProps) {
+  const [internalMode, setInternalMode] = useState<ChartMode>("all");
+  const mode = controlledMode ?? internalMode;
+
+  const handleModeChange = (newMode: ChartMode) => {
+    if (onModeChange) {
+      onModeChange(newMode);
+    } else {
+      setInternalMode(newMode);
+    }
+  };
 
   // Filter and shape data based on selected mode
   const chartData = useMemo(() => {
@@ -102,7 +118,7 @@ export function PartnerReceiptsChart({ data, isLoading }: PartnerReceiptsChartPr
         <div className="inline-flex items-center rounded-lg border border-border bg-muted/40 p-1 self-start sm:self-auto">
           <button
             type="button"
-            onClick={() => setMode("all")}
+            onClick={() => handleModeChange("all")}
             className={cn(
               "flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-md transition-all",
               mode === "all"
@@ -115,7 +131,7 @@ export function PartnerReceiptsChart({ data, isLoading }: PartnerReceiptsChartPr
           </button>
           <button
             type="button"
-            onClick={() => setMode("prepaid")}
+            onClick={() => handleModeChange("prepaid")}
             className={cn(
               "flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-md transition-all",
               mode === "prepaid"
@@ -128,7 +144,7 @@ export function PartnerReceiptsChart({ data, isLoading }: PartnerReceiptsChartPr
           </button>
           <button
             type="button"
-            onClick={() => setMode("postpaid")}
+            onClick={() => handleModeChange("postpaid")}
             className={cn(
               "flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-md transition-all",
               mode === "postpaid"

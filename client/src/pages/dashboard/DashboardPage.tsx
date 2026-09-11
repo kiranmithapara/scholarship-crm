@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   Users,
   GraduationCap,
@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { StatCard } from "@/components/common/StatCard";
-import { PartnerReceiptsChart } from "@/components/charts/PartnerReceiptsChart";
+import { PartnerReceiptsChart, type ChartMode } from "@/components/charts/PartnerReceiptsChart";
 import { RevenueDonutChart, GREEN_PALETTE, AMBER_PALETTE } from "@/components/charts/RevenueDonutChart";
 import { PostpaidApplicationsDonut } from "@/components/charts/PostpaidApplicationsDonut";
 import { RecentStudentsTable } from "@/components/tables/RecentStudentsTable";
@@ -46,6 +46,7 @@ export default function DashboardPage() {
 
   const [period, setPeriod] = useState<string>("all");
   const [partnerFilter, setPartnerFilter] = useState<string>("all");
+  const [chartMode, setChartMode] = useState<ChartMode>("all");
   const [partners, setPartners] = useState<{ id: string; fullName: string }[]>([]);
 
   const [receiptsData, setReceiptsData] = useState<PartnerReceiptsResponse | null>(null);
@@ -85,6 +86,38 @@ export default function DashboardPage() {
       })
       .finally(() => setReceiptsLoading(false));
   }, [isSuperAdmin, period, partnerFilter]);
+
+  const activeSummary = useMemo(() => {
+    if (!receiptsData) {
+      return { pending: 0, paid: 0, total: 0, labelPrefix: "" };
+    }
+    if (chartMode === "prepaid") {
+      const pending = receiptsData.totals.prepaidPendingRevenue ?? 0;
+      const paid = receiptsData.totals.prepaidPaidRevenue ?? 0;
+      return {
+        pending,
+        paid,
+        total: pending + paid,
+        labelPrefix: "Prepaid ",
+      };
+    }
+    if (chartMode === "postpaid") {
+      const pending = receiptsData.totals.postpaidPendingRevenue ?? 0;
+      const paid = receiptsData.totals.postpaidPaidRevenue ?? 0;
+      return {
+        pending,
+        paid,
+        total: pending + paid,
+        labelPrefix: "Postpaid ",
+      };
+    }
+    return {
+      pending: receiptsData.totals.pendingRevenue,
+      paid: receiptsData.totals.paidRevenue,
+      total: receiptsData.totals.totalRevenue,
+      labelPrefix: "",
+    };
+  }, [receiptsData, chartMode]);
 
   if (error) {
     return (
@@ -201,9 +234,11 @@ export default function DashboardPage() {
                     <Clock className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Pending Revenue</p>
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                      {activeSummary.labelPrefix ? `${activeSummary.labelPrefix}Pending Revenue` : "Pending Revenue"}
+                    </p>
                     <p className="text-lg font-semibold text-foreground truncate">
-                      {formatCurrency(receiptsData.totals.pendingRevenue)}
+                      {formatCurrency(activeSummary.pending)}
                     </p>
                   </div>
                 </CardContent>
@@ -214,9 +249,11 @@ export default function DashboardPage() {
                     <CheckCircle2 className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Paid Revenue</p>
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                      {activeSummary.labelPrefix ? `${activeSummary.labelPrefix}Paid Revenue` : "Paid Revenue"}
+                    </p>
                     <p className="text-lg font-semibold text-foreground truncate">
-                      {formatCurrency(receiptsData.totals.paidRevenue)}
+                      {formatCurrency(activeSummary.paid)}
                     </p>
                   </div>
                 </CardContent>
@@ -227,9 +264,11 @@ export default function DashboardPage() {
                     <IndianRupee className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Total Revenue</p>
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                      {activeSummary.labelPrefix ? `${activeSummary.labelPrefix}Total Revenue` : "Total Revenue"}
+                    </p>
                     <p className="text-lg font-semibold text-foreground truncate">
-                      {formatCurrency(receiptsData.totals.totalRevenue)}
+                      {formatCurrency(activeSummary.total)}
                     </p>
                   </div>
                 </CardContent>
@@ -240,19 +279,52 @@ export default function DashboardPage() {
           {/* Bar chart + Paid donut */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <div className="lg:col-span-2 min-w-0">
-              <PartnerReceiptsChart data={receiptsData?.items ?? []} isLoading={receiptsLoading} />
+              <PartnerReceiptsChart
+                data={receiptsData?.items ?? []}
+                isLoading={receiptsLoading}
+                mode={chartMode}
+                onModeChange={setChartMode}
+              />
             </div>
             <div className="lg:col-span-1 min-w-0">
               <RevenueDonutChart
-                title="Paid Revenue Split"
+                title={
+                  chartMode === "prepaid"
+                    ? "Prepaid Paid Revenue Split"
+                    : chartMode === "postpaid"
+                    ? "Postpaid Paid Revenue Split"
+                    : "Paid Revenue Split"
+                }
                 items={(receiptsData?.items ?? []).map((p) => ({
                   name: p.partnerName,
-                  value: p.paidRevenue,
-                  students: p.paidStudentsCount,
+                  value:
+                    chartMode === "prepaid"
+                      ? p.prepaidPaidRevenue ?? 0
+                      : chartMode === "postpaid"
+                      ? p.postpaidPaidRevenue ?? 0
+                      : p.paidRevenue,
+                  students:
+                    chartMode === "prepaid"
+                      ? p.prepaidPaidStudentsCount ?? 0
+                      : chartMode === "postpaid"
+                      ? p.postpaidPaidStudentsCount ?? 0
+                      : p.paidStudentsCount,
                 }))}
-                total={receiptsData?.totals.paidRevenue ?? 0}
-                totalLabel="Total Paid"
-                studentsCount={receiptsData?.totals.paidStudentsCount ?? 0}
+                total={activeSummary.paid}
+                totalLabel={
+                  chartMode === "prepaid"
+                    ? "Prepaid Paid"
+                    : chartMode === "postpaid"
+                    ? "Postpaid Paid"
+                    : "Total Paid"
+                }
+                studentsCount={
+                  chartMode === "prepaid"
+                    ? receiptsData?.totals.prepaidPaidStudentsCount ?? 0
+                    : chartMode === "postpaid"
+                    ? receiptsData?.totals.postpaidPaidStudentsCount ?? 0
+                    : receiptsData?.totals.paidStudentsCount ?? 0
+                }
                 emptyTitle="No paid revenue yet"
                 emptyDescription="When partner commissions are marked as paid, the split will appear here."
                 palette={GREEN_PALETTE}
@@ -265,15 +337,32 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div className="min-w-0">
               <RevenueDonutChart
-                title="Pending Revenue Split"
+                title={
+                  chartMode === "prepaid"
+                    ? "Prepaid Pending Revenue Split"
+                    : chartMode === "postpaid"
+                    ? "Postpaid Pending Revenue Split"
+                    : "Pending Revenue Split"
+                }
                 items={(receiptsData?.items ?? []).map((p) => ({
                   name: p.partnerName,
-                  value: p.pendingRevenue,
+                  value:
+                    chartMode === "prepaid"
+                      ? p.prepaidPendingRevenue ?? 0
+                      : chartMode === "postpaid"
+                      ? p.postpaidPendingRevenue ?? 0
+                      : p.pendingRevenue,
                 }))}
-                total={receiptsData?.totals.pendingRevenue ?? 0}
-                totalLabel="Total Pending"
+                total={activeSummary.pending}
+                totalLabel={
+                  chartMode === "prepaid"
+                    ? "Prepaid Pending"
+                    : chartMode === "postpaid"
+                    ? "Postpaid Pending"
+                    : "Total Pending"
+                }
                 emptyTitle="No pending revenue"
-                emptyDescription="Pending prepaid receipts will appear here."
+                emptyDescription="Pending receipts will appear here."
                 palette={AMBER_PALETTE}
                 isLoading={receiptsLoading}
               />
