@@ -116,22 +116,31 @@ export default function DashboardPage() {
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {isSuperAdmin && (
-          <StatCard label="Referral Partners" value={cards?.totalReferralPartners ?? 0} icon={Users} isLoading={isLoading} tone="primary" />
-        )}
-        <StatCard label={isSuperAdmin ? "Total Students" : "My Students"} value={cards?.totalStudents ?? 0} icon={GraduationCap} isLoading={isLoading} tone="primary" />
-        <StatCard label="Prepaid Applications" value={cards?.prepaidCount ?? 0} icon={Wallet} isLoading={isLoading} tone="primary" />
-        <StatCard label="Postpaid Applications" value={cards?.postpaidCount ?? 0} icon={Wallet2} isLoading={isLoading} tone="primary" />
-        <StatCard label="Pending Applications" value={cards?.pendingCount ?? 0} icon={Clock} isLoading={isLoading} tone="warning" />
-        <StatCard label="Completed Applications" value={cards?.completedCount ?? 0} icon={CheckCircle2} isLoading={isLoading} tone="success" />
-        <StatCard label="Postpaid Commission" value={cards?.postpaidCommission?.total ?? 0} icon={Wallet2} isLoading={isLoading} tone="primary" prefix="₹" />
-        <StatCard label="Prepaid Commission" value={cards?.prepaidCommission?.total ?? 0} icon={Wallet} isLoading={isLoading} tone="primary" prefix="₹" />
-        <StatCard label="Commission (Pending)" value={cards?.commission.pending ?? 0} icon={Clock} isLoading={isLoading} tone="warning" prefix="₹" />
-        <StatCard label="Commission (Paid)" value={cards?.commission.paid ?? 0} icon={CheckCircle2} isLoading={isLoading} tone="success" prefix="₹" />
-        {isSuperAdmin && (
+        {isSuperAdmin ? (
           <>
-            <StatCard label="My Revenue (Pending)" value={cards?.adminRevenue.pending ?? 0} icon={IndianRupee} isLoading={isLoading} tone="warning" prefix="₹" />
-            <StatCard label="My Revenue (Received)" value={cards?.adminRevenue.paid ?? 0} icon={IndianRupee} isLoading={isLoading} tone="success" prefix="₹" />
+            <StatCard label="Referral Partners" value={cards?.totalReferralPartners ?? 0} icon={Users} isLoading={isLoading} tone="primary" />
+            <StatCard label="Total Students" value={cards?.totalStudents ?? 0} icon={GraduationCap} isLoading={isLoading} tone="primary" />
+            <StatCard label="Prepaid Applications" value={cards?.prepaidCount ?? 0} icon={Wallet} isLoading={isLoading} tone="primary" />
+            <StatCard label="Postpaid Applications" value={cards?.postpaidCount ?? 0} icon={Wallet2} isLoading={isLoading} tone="primary" />
+            <StatCard label="Pending Applications" value={cards?.pendingCount ?? 0} icon={Clock} isLoading={isLoading} tone="warning" />
+            <StatCard label="Completed Applications" value={cards?.completedCount ?? 0} icon={CheckCircle2} isLoading={isLoading} tone="success" />
+            <StatCard label="Prepaid Revenue (Pending)" value={cards?.adminRevenue?.prepaid?.pending ?? 0} icon={Wallet} isLoading={isLoading} tone="warning" prefix="₹" />
+            <StatCard label="Prepaid Revenue (Received)" value={cards?.adminRevenue?.prepaid?.paid ?? 0} icon={Wallet} isLoading={isLoading} tone="success" prefix="₹" />
+            <StatCard label="Postpaid Revenue (Pending)" value={cards?.adminRevenue?.postpaid?.pending ?? 0} icon={Wallet2} isLoading={isLoading} tone="warning" prefix="₹" />
+            <StatCard label="Postpaid Revenue (Received)" value={cards?.adminRevenue?.postpaid?.paid ?? 0} icon={Wallet2} isLoading={isLoading} tone="success" prefix="₹" />
+            <StatCard label="Total Revenue (Pending)" value={cards?.adminRevenue?.pending ?? 0} icon={IndianRupee} isLoading={isLoading} tone="warning" prefix="₹" />
+            <StatCard label="Total Revenue (Received)" value={cards?.adminRevenue?.paid ?? 0} icon={IndianRupee} isLoading={isLoading} tone="success" prefix="₹" />
+          </>
+        ) : (
+          <>
+            <StatCard label="My Students" value={cards?.totalStudents ?? 0} icon={GraduationCap} isLoading={isLoading} tone="primary" />
+            <StatCard label="Prepaid Applications" value={cards?.prepaidCount ?? 0} icon={Wallet} isLoading={isLoading} tone="primary" />
+            <StatCard label="Postpaid Applications" value={cards?.postpaidCount ?? 0} icon={Wallet2} isLoading={isLoading} tone="primary" />
+            <StatCard label="Pending Applications" value={cards?.pendingCount ?? 0} icon={Clock} isLoading={isLoading} tone="warning" />
+            <StatCard label="Completed Applications" value={cards?.completedCount ?? 0} icon={CheckCircle2} isLoading={isLoading} tone="success" />
+            <StatCard label="My Commission (Pending)" value={cards?.commission?.pending ?? 0} icon={Clock} isLoading={isLoading} tone="warning" prefix="₹" />
+            <StatCard label="My Commission (Paid)" value={cards?.commission?.paid ?? 0} icon={CheckCircle2} isLoading={isLoading} tone="success" prefix="₹" />
+            <StatCard label="Total Commission" value={cards?.commission?.total ?? 0} icon={Wallet2} isLoading={isLoading} tone="primary" prefix="₹" />
           </>
         )}
       </div>
@@ -297,7 +306,7 @@ export default function DashboardPage() {
               </Button>
               <Button asChild variant="outline" className="w-full justify-start">
                 <Link to={ROUTES.SETTINGS}>
-                  <Wallet className="mr-2 h-4 w-4" /> Total Commission: {formatCurrency(cards?.commission.total ?? 0)}
+                  <IndianRupee className="mr-2 h-4 w-4" /> Total Revenue: {formatCurrency(cards?.adminRevenue?.total ?? ((cards?.adminRevenue?.pending ?? 0) + (cards?.adminRevenue?.paid ?? 0)))}
                 </Link>
               </Button>
             </>
