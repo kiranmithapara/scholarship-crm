@@ -45,6 +45,7 @@ import { toast } from "sonner";
 export default function DashboardPage() {
   const { user } = useAuth();
   const { data, isLoading, error, refetch } = useDashboardStats();
+  const cards = data?.cards;
 
   const isSuperAdmin = user?.role === ROLES.SUPER_ADMIN;
 
@@ -188,8 +189,6 @@ export default function DashboardPage() {
       </div>
     );
   }
-
-  const cards = data?.cards;
 
   return (
     <div className="space-y-6 p-3 sm:p-6 max-w-full overflow-x-hidden">
