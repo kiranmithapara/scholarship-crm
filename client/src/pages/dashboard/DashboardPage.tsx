@@ -14,6 +14,10 @@ import {
 import { motion } from "framer-motion";
 import { StatCard } from "@/components/common/StatCard";
 import { PartnerReceiptsChart, type ChartMode } from "@/components/charts/PartnerReceiptsChart";
+import { PartnerCommissionBarChart } from "@/components/charts/PartnerCommissionBarChart";
+import { CommissionHisabDonut } from "@/components/charts/CommissionHisabDonut";
+import { PartnerServicesDonut } from "@/components/charts/PartnerServicesDonut";
+import { ApplicationStatusDonut } from "@/components/charts/ApplicationStatusDonut";
 import { RevenueDonutChart, GREEN_PALETTE, AMBER_PALETTE } from "@/components/charts/RevenueDonutChart";
 import { PostpaidApplicationsDonut } from "@/components/charts/PostpaidApplicationsDonut";
 import { RecentStudentsTable } from "@/components/tables/RecentStudentsTable";
@@ -66,13 +70,12 @@ export default function DashboardPage() {
   }, [isSuperAdmin]);
 
   useEffect(() => {
-    if (!isSuperAdmin) return;
     setReceiptsLoading(true);
     dashboardService
-      .getPartnerReceipts({ period, partnerId: partnerFilter })
+      .getPartnerReceipts({ period, partnerId: isSuperAdmin ? partnerFilter : undefined })
       .then(setReceiptsData)
       .catch(() => {
-        toast.error("Could not load partner receipts");
+        toast.error("Could not load receipts analytics");
         setReceiptsData({
           items: [],
           totals: {
@@ -118,6 +121,65 @@ export default function DashboardPage() {
       labelPrefix: "",
     };
   }, [receiptsData, chartMode]);
+
+  // Specific partner receipt item for referral admin role
+  const partnerReceipt = useMemo(() => {
+    if (isSuperAdmin) return null;
+    return receiptsData?.items?.[0] ?? null;
+  }, [isSuperAdmin, receiptsData]);
+
+  // Referral Partner Commission Summary
+  const partnerCommissionSummary = useMemo(() => {
+    if (isSuperAdmin) {
+      return { pending: 0, paid: 0, total: 0, labelPrefix: "" };
+    }
+    const item = partnerReceipt;
+    let pending = item ? item.pendingCommission ?? 0 : (cards?.commission?.pending ?? 0);
+    let paid = item ? item.paidCommission ?? 0 : (cards?.commission?.paid ?? 0);
+    let labelPrefix = "";
+
+    if (chartMode === "prepaid") {
+      pending = item ? item.prepaidPendingCommission ?? 0 : (cards?.prepaidCommission?.pending ?? 0);
+      paid = item ? item.prepaidPaidCommission ?? 0 : (cards?.prepaidCommission?.paid ?? 0);
+      labelPrefix = "Prepaid ";
+    } else if (chartMode === "postpaid") {
+      pending = item ? item.postpaidPendingCommission ?? 0 : (cards?.postpaidCommission?.pending ?? 0);
+      paid = item ? item.postpaidPaidCommission ?? 0 : (cards?.postpaidCommission?.paid ?? 0);
+      labelPrefix = "Postpaid ";
+    }
+
+    return {
+      pending,
+      paid,
+      total: pending + paid,
+      labelPrefix,
+    };
+  }, [isSuperAdmin, partnerReceipt, cards, chartMode]);
+
+  // Referral Partner Bar Chart Data
+  const partnerBarChartData = useMemo(() => {
+    const item = partnerReceipt;
+    return {
+      prepaid: {
+        pending: item ? item.prepaidPendingCommission ?? 0 : (cards?.prepaidCommission?.pending ?? 0),
+        paid: item ? item.prepaidPaidCommission ?? 0 : (cards?.prepaidCommission?.paid ?? 0),
+        total: item
+          ? (item.prepaidPendingCommission ?? 0) + (item.prepaidPaidCommission ?? 0)
+          : (cards?.prepaidCommission?.total ?? 0),
+        students: item ? item.prepaidCount : (cards?.prepaidCount ?? 0),
+        paidStudents: item ? item.prepaidPaidStudentsCount ?? 0 : 0,
+      },
+      postpaid: {
+        pending: item ? item.postpaidPendingCommission ?? 0 : (cards?.postpaidCommission?.pending ?? 0),
+        paid: item ? item.postpaidPaidCommission ?? 0 : (cards?.postpaidCommission?.paid ?? 0),
+        total: item
+          ? (item.postpaidPendingCommission ?? 0) + (item.postpaidPaidCommission ?? 0)
+          : (cards?.postpaidCommission?.total ?? 0),
+        students: item ? item.postpaidCount : (cards?.postpaidCount ?? 0),
+        paidStudents: item ? item.postpaidPaidStudentsCount ?? 0 : 0,
+      },
+    };
+  }, [partnerReceipt, cards]);
 
   if (error) {
     return (
@@ -178,7 +240,7 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Receipts section */}
+      {/* Super Admin Receipts section */}
       {isSuperAdmin && (
         <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -369,6 +431,155 @@ export default function DashboardPage() {
             </div>
             <div className="min-w-0">
               <PostpaidApplicationsDonut data={receiptsData?.items ?? []} isLoading={receiptsLoading} />
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Referral Partner Commission & Hisab Analytics Section */}
+      {!isSuperAdmin && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.1 }}
+          className="space-y-4"
+        >
+          {/* Filter bar */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-base sm:text-lg font-semibold text-foreground flex items-center gap-2">
+                <Filter className="h-4 w-4 text-muted-foreground" /> Commission & Earnings Analytics
+              </h2>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                Complete graphical hisab of your earnings, paid commissions, and application distribution.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <Select value={period} onValueChange={setPeriod}>
+                <SelectTrigger className="w-full sm:w-36">
+                  <SelectValue placeholder="Period" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="7d">Last 7 days</SelectItem>
+                  <SelectItem value="30d">Last 30 days</SelectItem>
+                  <SelectItem value="90d">Last 90 days</SelectItem>
+                  <SelectItem value="all">All time</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Summary mini cards */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <Card>
+              <CardContent className="flex items-center gap-3 p-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning/10 text-warning shrink-0">
+                  <Clock className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    {partnerCommissionSummary.labelPrefix
+                      ? `${partnerCommissionSummary.labelPrefix}Pending Commission`
+                      : "Pending Commission (Baki)"}
+                  </p>
+                  <p className="text-lg font-semibold text-foreground truncate">
+                    {formatCurrency(partnerCommissionSummary.pending)}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="flex items-center gap-3 p-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-success/10 text-success shrink-0">
+                  <CheckCircle2 className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    {partnerCommissionSummary.labelPrefix
+                      ? `${partnerCommissionSummary.labelPrefix}Paid Commission`
+                      : "Paid Commission (Mil Chuka)"}
+                  </p>
+                  <p className="text-lg font-semibold text-foreground truncate">
+                    {formatCurrency(partnerCommissionSummary.paid)}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="flex items-center gap-3 p-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-50 text-primary shrink-0">
+                  <IndianRupee className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    {partnerCommissionSummary.labelPrefix
+                      ? `${partnerCommissionSummary.labelPrefix}Total Earnings`
+                      : "Total Earnings (Kul Kamai)"}
+                  </p>
+                  <p className="text-lg font-semibold text-foreground truncate">
+                    {formatCurrency(partnerCommissionSummary.total)}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Bar Chart + Commission Hisab Donut */}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <div className="lg:col-span-2 min-w-0">
+              <PartnerCommissionBarChart
+                data={partnerBarChartData}
+                isLoading={receiptsLoading || isLoading}
+                mode={chartMode}
+                onModeChange={setChartMode}
+              />
+            </div>
+            <div className="lg:col-span-1 min-w-0">
+              <CommissionHisabDonut
+                title="Commission Hisab Split"
+                paid={partnerCommissionSummary.paid}
+                pending={partnerCommissionSummary.pending}
+                paidStudents={partnerReceipt ? partnerReceipt.paidStudentsCount : (cards?.completedCount ?? 0)}
+                pendingStudents={
+                  (cards?.totalStudents ?? 0) -
+                  (partnerReceipt ? partnerReceipt.paidStudentsCount : (cards?.completedCount ?? 0))
+                }
+                isLoading={receiptsLoading || isLoading}
+              />
+            </div>
+          </div>
+
+          {/* Services Donut + Application Status Donut */}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div className="min-w-0">
+              <PartnerServicesDonut
+                title="Service Applications Split"
+                prepaidCount={partnerReceipt ? partnerReceipt.prepaidCount : (cards?.prepaidCount ?? 0)}
+                postpaidCount={partnerReceipt ? partnerReceipt.postpaidCount : (cards?.postpaidCount ?? 0)}
+                prepaidCommission={
+                  partnerReceipt
+                    ? (partnerReceipt.prepaidPendingCommission ?? 0) +
+                      (partnerReceipt.prepaidPaidCommission ?? 0)
+                    : (cards?.prepaidCommission?.total ?? 0)
+                }
+                postpaidCommission={
+                  partnerReceipt
+                    ? (partnerReceipt.postpaidPendingCommission ?? 0) +
+                      (partnerReceipt.postpaidPaidCommission ?? 0)
+                    : (cards?.postpaidCommission?.total ?? 0)
+                }
+                isLoading={receiptsLoading || isLoading}
+              />
+            </div>
+            <div className="min-w-0">
+              <ApplicationStatusDonut
+                title="Application Status Split"
+                completed={cards?.statusCounts?.completed ?? cards?.completedCount ?? 0}
+                verified={cards?.statusCounts?.verified ?? 0}
+                pending={cards?.statusCounts?.pending ?? cards?.pendingCount ?? 0}
+                correctionRequested={cards?.statusCounts?.correctionRequested ?? 0}
+                isLoading={isLoading}
+              />
             </div>
           </div>
         </motion.div>

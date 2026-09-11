@@ -17,6 +17,8 @@ export const dashboardService = {
       postpaidCount,
       pendingCount,
       completedCount,
+      verifiedCount,
+      correctionRequestedCount,
       commissionStatsRows,
       recentStudents,
     ] = await Promise.all([
@@ -24,8 +26,10 @@ export const dashboardService = {
       Student.count({ where: studentWhere }),
       Student.count({ where: { ...studentWhere, serviceType: "prepaid" } }),
       Student.count({ where: { ...studentWhere, serviceType: "postpaid" } }),
-      Student.count({ where: { ...studentWhere, status: { [Op.in]: ["pending", "correction_requested"] } } }),
+      Student.count({ where: { ...studentWhere, status: "pending" } }),
       Student.count({ where: { ...studentWhere, status: "completed" } }),
+      Student.count({ where: { ...studentWhere, status: "verified" } }),
+      Student.count({ where: { ...studentWhere, status: "correction_requested" } }),
       sequelize.query<any>(
         `SELECT
            COALESCE(SUM(COALESCE(c.amount, s.partner_profit, 0)), 0) AS "total",
@@ -95,6 +99,12 @@ export const dashboardService = {
         postpaidCount,
         pendingCount,
         completedCount,
+        statusCounts: {
+          pending: pendingCount,
+          verified: verifiedCount,
+          completed: completedCount,
+          correctionRequested: correctionRequestedCount,
+        },
         commission: {
           total: Number(commissionRow.total ?? 0),
           pending: Number(commissionRow.pending ?? 0),
@@ -197,7 +207,7 @@ export const dashboardService = {
       type: QueryTypes.SELECT,
     });
 
-    const items = rows.map((r) => {
+    let items = rows.map((r) => {
       const pending = Number(r.pendingRevenue ?? 0);
       const paid = Number(r.paidRevenue ?? 0);
       const prepaidPending = Number(r.prepaidPendingRevenue ?? 0);
@@ -246,6 +256,42 @@ export const dashboardService = {
         postpaidPaidStudentsCount: Number(r.postpaidPaidStudentsCount ?? 0),
       };
     });
+
+    if (items.length === 0 && partnerId && partnerId !== "all") {
+      const partnerUser = await User.findOne({ where: { id: partnerId } });
+      if (partnerUser) {
+        items = [
+          {
+            partnerId: partnerUser.id,
+            partnerName: partnerUser.fullName,
+            prepaidCount: 0,
+            postpaidCount: 0,
+            totalReceipts: 0,
+            pendingRevenue: 0,
+            paidRevenue: 0,
+            totalRevenue: 0,
+            prepaidPendingRevenue: 0,
+            prepaidPaidRevenue: 0,
+            prepaidTotalRevenue: 0,
+            postpaidPendingRevenue: 0,
+            postpaidPaidRevenue: 0,
+            postpaidTotalRevenue: 0,
+            pendingCommission: 0,
+            paidCommission: 0,
+            totalCommission: 0,
+            prepaidPendingCommission: 0,
+            prepaidPaidCommission: 0,
+            prepaidTotalCommission: 0,
+            postpaidPendingCommission: 0,
+            postpaidPaidCommission: 0,
+            postpaidTotalCommission: 0,
+            paidStudentsCount: 0,
+            prepaidPaidStudentsCount: 0,
+            postpaidPaidStudentsCount: 0,
+          },
+        ];
+      }
+    }
 
     const totals = items.reduce(
       (acc, r) => ({

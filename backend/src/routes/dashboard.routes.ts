@@ -14,7 +14,6 @@ router.get("/super-admin/stats", authMiddleware, roleMiddleware("super_admin"), 
 router.get(
   "/partner-receipts",
   authMiddleware,
-  roleMiddleware("super_admin"),
   validate(partnerReceiptsFilterSchema),
   dashboardController.getPartnerReceipts
 );

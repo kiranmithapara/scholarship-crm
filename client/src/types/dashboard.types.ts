@@ -5,6 +5,12 @@ export interface DashboardCards {
   postpaidCount: number;
   pendingCount: number;
   completedCount: number;
+  statusCounts?: {
+    pending: number;
+    verified: number;
+    completed: number;
+    correctionRequested: number;
+  };
   commission: {
     total: number;
     pending: number;

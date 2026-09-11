@@ -19,10 +19,14 @@ export const dashboardController = {
   // V9 NEW: partner-wise receipt summary with filters
   getPartnerReceipts: asyncHandler(async (req: Request, res: Response) => {
     if (!req.user) throw ApiError.unauthorized();
-    if (req.user.role !== "super_admin") {
-      throw ApiError.forbidden("Only Super Admin can view partner receipts");
+    const isSuperAdmin = req.user.role === "super_admin";
+    let { period = "all", partnerId } = req.query as { period?: string; partnerId?: string };
+
+    // If referral partner, force their own partnerId
+    if (!isSuperAdmin) {
+      partnerId = req.user.id;
     }
-    const { period = "all", partnerId } = req.query as { period?: string; partnerId?: string };
+
     const result = await dashboardService.getPartnerReceipts({ period, partnerId });
     ApiResponse.ok(res, result, "Partner receipts fetched successfully");
   }),
