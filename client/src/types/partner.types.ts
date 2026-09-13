@@ -27,7 +27,12 @@ export interface CommissionItem {
   status: "pending" | "paid";
   paidAt: string | null;
   createdAt: string;
-  student: { id: string; fullName: string; serviceType: "prepaid" | "postpaid" };
+  student: {
+    id: string;
+    fullName: string;
+    serviceType: "prepaid" | "postpaid";
+    timeline?: Array<{ event: string }>;
+  };
 }
 
 export interface PartnerNoteItem {

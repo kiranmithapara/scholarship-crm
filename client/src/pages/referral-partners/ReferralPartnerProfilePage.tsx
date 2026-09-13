@@ -43,6 +43,22 @@ import { ROUTES, buildPath } from "@/constants/routes.constant";
 import type { CommissionItem, ReferralPartner } from "@/types/partner.types";
 import type { CreateStudentInput } from "@/types/student.types";
 
+const REQUIRED_POSTPAID_STAGES = [
+  "application_filled",
+  "application_locked_by_student",
+  "documents_submitted",
+  "help_center_verification_completed",
+  "scholarship_approved",
+];
+
+const isCommissionEligibleForPaid = (commission: CommissionItem) => {
+  if (commission.status === "paid") return true;
+  if (commission.student.serviceType === "prepaid") return true;
+  if (!commission.student.timeline) return false;
+  const events = new Set(commission.student.timeline.map((t) => t.event));
+  return REQUIRED_POSTPAID_STAGES.every((stage) => events.has(stage));
+};
+
 export default function ReferralPartnerProfilePage() {
   const { id } = useParams<{ id: string }>();
   const { data, isLoading, error, refetch } = usePartnerProfile(id);
@@ -98,6 +114,9 @@ export default function ReferralPartnerProfilePage() {
   }, [data]);
 
   useEffect(fetchCommissions, [id]);
+
+  const hasPayableCommissions =
+    commissions?.some((c) => c.status === "pending" && isCommissionEligibleForPaid(c)) ?? false;
 
   if (error) {
     return (
@@ -270,8 +289,6 @@ export default function ReferralPartnerProfilePage() {
     }
   };
 
-  const hasPendingCommissions = commissions?.some((c) => c.status === "pending") ?? false;
-
   return (
     <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
       <Link to={ROUTES.REFERRAL_PARTNERS} className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground">
@@ -387,7 +404,7 @@ export default function ReferralPartnerProfilePage() {
           <CardTitle className="text-base sm:text-lg flex items-center gap-1.5">
             <Wallet className="h-4 w-4" /> Commissions
           </CardTitle>
-          {hasPendingCommissions && (
+          {hasPayableCommissions && (
             <Button variant="gradient" size="sm" className="w-full sm:w-auto" onClick={handleMarkAllPaid} isLoading={isMarkingAll}>
               <CheckCheck className="mr-1.5 h-3.5 w-3.5" /> Mark All as Paid
             </Button>
@@ -429,23 +446,29 @@ export default function ReferralPartnerProfilePage() {
                         {commission.paidAt && <p className="mt-0.5 text-xs text-muted-foreground">Paid {formatDate(commission.paidAt)}</p>}
                       </td>
                       <td className="py-3 text-right">
-                        <Button
-                          variant={commission.status === "pending" ? "gradient" : "outline"}
-                          size="sm"
-                          className="text-xs h-8 px-2.5 whitespace-nowrap"
-                          onClick={() => handleToggleCommission(commission)}
-                          isLoading={updatingCommissionId === commission.id}
-                        >
-                          {commission.status === "pending" ? (
-                            <>
-                              <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" /> Mark as Paid
-                            </>
-                          ) : (
-                            <>
-                              <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Revert to Pending
-                            </>
-                          )}
-                        </Button>
+                        {commission.status === "paid" ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs h-8 px-2.5 whitespace-nowrap"
+                            onClick={() => handleToggleCommission(commission)}
+                            isLoading={updatingCommissionId === commission.id}
+                          >
+                            <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Revert to Pending
+                          </Button>
+                        ) : isCommissionEligibleForPaid(commission) ? (
+                          <Button
+                            variant="gradient"
+                            size="sm"
+                            className="text-xs h-8 px-2.5 whitespace-nowrap"
+                            onClick={() => handleToggleCommission(commission)}
+                            isLoading={updatingCommissionId === commission.id}
+                          >
+                            <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" /> Mark as Paid
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground italic">Approval Required</span>
+                        )}
                       </td>
                     </tr>
                   ))}

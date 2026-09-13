@@ -1,5 +1,5 @@
 import { Op, fn, col, literal } from "sequelize";
-import { User, Student, Commission, StudentTimeline, PartnerNote } from "@/models";
+import { User, Student, Commission, StudentTimeline, PartnerNote, type StudentStatus } from "@/models";
 import { ApiError } from "@/utils/apiError";
 import { hashPassword } from "@/helpers/password.helper";
 import { mailService } from "./mail.service";
@@ -173,7 +173,14 @@ export const partnerService = {
 
     return Commission.findAll({
       where: { referralPartnerId: id },
-      include: [{ model: Student, as: "student", attributes: ["id", "fullName", "serviceType"] }],
+      include: [
+        {
+          model: Student,
+          as: "student",
+          attributes: ["id", "fullName", "serviceType"],
+          include: [{ model: StudentTimeline, as: "timeline", attributes: ["event"] }],
+        },
+      ],
       order: [["createdAt", "DESC"]],
     });
   },
@@ -182,15 +189,53 @@ export const partnerService = {
     const commission = await Commission.findByPk(commissionId);
     if (!commission) throw ApiError.notFound("Commission record not found");
 
+    const student = await Student.findByPk(commission.studentId);
+    if (status === "paid" && student && student.serviceType === "postpaid") {
+      const timelines = await StudentTimeline.findAll({
+        where: { studentId: student.id },
+        attributes: ["event"],
+      });
+      const recordedStages = new Set(timelines.map((t) => t.event));
+      const hasAll5Stages = [
+        "application_filled",
+        "application_locked_by_student",
+        "documents_submitted",
+        "help_center_verification_completed",
+        "scholarship_approved",
+      ].every((st) => recordedStages.has(st as any));
+
+      if (!hasAll5Stages) {
+        throw ApiError.badRequest(
+          "Postpaid students can only be marked as paid after completing all 5 stages: Application Filled, Application Locked by Student, Documents Submitted at Help Center, Help Center Verification Completed, and Scholarship Approved."
+        );
+      }
+    }
+
     await commission.update({ status, paidAt: status === "paid" ? new Date() : null });
 
-    if (status === "paid") {
-      const student = await Student.findByPk(commission.studentId);
-      if (student && student.status !== "completed") {
-        await student.update({ status: "completed" });
+    if (student) {
+      if (status === "paid") {
+        if (student.status !== "completed") {
+          await student.update({ status: "completed" });
+          await StudentTimeline.create({
+            studentId: student.id,
+            event: "case_completed",
+            createdBy: commission.referralPartnerId,
+          });
+        }
+      } else if (status === "pending") {
+        let targetStatus: StudentStatus = "pending";
+        if (student.serviceType === "postpaid") {
+          const verifiedTimeline = await StudentTimeline.findOne({
+            where: { studentId: student.id, event: "help_center_verification_completed" },
+          });
+          targetStatus = verifiedTimeline ? "verified" : "pending";
+        }
+        await student.update({ status: targetStatus });
         await StudentTimeline.create({
           studentId: student.id,
-          event: "case_completed",
+          event: "payment_pending",
+          note: "Payment reverted to pending",
           createdBy: commission.referralPartnerId,
         });
       }
@@ -211,11 +256,33 @@ export const partnerService = {
     let count = 0;
 
     for (const commission of pendingCommissions) {
+      const student = await Student.findByPk(commission.studentId);
+      if (!student) continue;
+
+      if (student.serviceType === "postpaid") {
+        const timelines = await StudentTimeline.findAll({
+          where: { studentId: student.id },
+          attributes: ["event"],
+        });
+        const recordedStages = new Set(timelines.map((t) => t.event));
+        const hasAll5Stages = [
+          "application_filled",
+          "application_locked_by_student",
+          "documents_submitted",
+          "help_center_verification_completed",
+          "scholarship_approved",
+        ].every((st) => recordedStages.has(st as any));
+
+        if (!hasAll5Stages) {
+          // Skip postpaid students that have not completed all 5 stages
+          continue;
+        }
+      }
+
       await commission.update({ status: "paid", paidAt: now });
       count++;
 
-      const student = await Student.findByPk(commission.studentId);
-      if (student && student.status !== "completed") {
+      if (student.status !== "completed") {
         await student.update({ status: "completed" });
         await StudentTimeline.create({
           studentId: student.id,

@@ -147,6 +147,19 @@ export default function StudentDetailsPage() {
   const hostelReceiptDoc = student.documents.find((d) => d.type === "hostel_receipt");
   const reachedStages = student.timeline.map((t) => t.event).filter((e) => CORE_STAGES.includes(e as TimelineEvent));
   const currentStage = reachedStages.length > 0 ? (reachedStages[reachedStages.length - 1] as TimelineEvent) : null;
+  const REQUIRED_POSTPAID_STAGES: TimelineEvent[] = [
+    "application_filled",
+    "application_locked_by_student",
+    "documents_submitted",
+    "help_center_verification_completed",
+    "scholarship_approved",
+  ];
+
+  const isEligibleForPaid =
+    isPrepaid ||
+    REQUIRED_POSTPAID_STAGES.every((stage) =>
+      student.timeline.some((t) => t.event === stage)
+    );
 
   const hasSellingPrice = student.sellingPrice !== null && student.sellingPrice !== "";
 
@@ -560,23 +573,29 @@ export default function StudentDetailsPage() {
                 <div className="mt-0.5 flex items-center gap-2">
                   <StatusBadge status={student.commission?.status ?? "pending"} />
                   {isSuperAdmin && student.commission && (
-                    <Button
-                      variant={student.commission.status === "pending" ? "gradient" : "outline"}
-                      size="sm"
-                      className="h-7 px-2.5 text-xs"
-                      onClick={handleToggleCommission}
-                      isLoading={isUpdatingCommission}
-                    >
-                      {student.commission.status === "pending" ? (
-                        <>
+                    student.commission.status === "pending" ? (
+                      isEligibleForPaid ? (
+                        <Button
+                          variant="gradient"
+                          size="sm"
+                          className="h-7 px-2.5 text-xs"
+                          onClick={handleToggleCommission}
+                          isLoading={isUpdatingCommission}
+                        >
                           <CheckCheck className="mr-1 h-3 w-3" /> Mark as Paid
-                        </>
-                      ) : (
-                        <>
-                          <RotateCcw className="mr-1 h-3 w-3" /> Revert to Pending
-                        </>
-                      )}
-                    </Button>
+                        </Button>
+                      ) : null
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 px-2.5 text-xs"
+                        onClick={handleToggleCommission}
+                        isLoading={isUpdatingCommission}
+                      >
+                        <RotateCcw className="mr-1 h-3 w-3" /> Revert to Pending
+                      </Button>
+                    )
                   )}
                 </div>
               </div>

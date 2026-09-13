@@ -76,3 +76,9 @@ export {
   AdminNote,
   PartnerNote,
 };
+
+export type { ServiceType, StudentStatus } from "./Student";
+export type { TimelineEvent } from "./StudentTimeline";
+export type { DocumentType } from "./Document";
+export type { CommissionStatus } from "./Commission";
+export type { PaymentStatus } from "./Payment";

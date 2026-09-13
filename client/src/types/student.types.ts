@@ -1,5 +1,5 @@
 export type ServiceType = "prepaid" | "postpaid";
-export type StudentStatus = "pending" | "completed";
+export type StudentStatus = "pending" | "verified" | "completed" | "correction_requested";
 export type DocumentType = "aadhaar" | "hostel_receipt" | "twelfth_marksheet";
 
 export type TimelineEvent =
