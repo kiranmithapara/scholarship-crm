@@ -7,10 +7,7 @@ import { logger } from "./logger.config";
  * SQL logging is disabled in all environments to keep console clean.
  * Queries can be logged to file via `logQuery` if needed, but not by default.
  */
-export const sequelize = new Sequelize(env.db.name, env.db.user, env.db.password, {
-  host: env.db.host,
-  port: env.db.port,
-  dialect: env.db.dialect,
+const options = {
   logging: false, // <-- SQL queries won't show in console
   dialectOptions: env.db.ssl
     ? {
@@ -31,7 +28,16 @@ export const sequelize = new Sequelize(env.db.name, env.db.user, env.db.password
     timestamps: true,
     paranoid: true,
   },
-});
+};
+
+export const sequelize = env.db.url
+  ? new Sequelize(env.db.url, options)
+  : new Sequelize(env.db.name, env.db.user, env.db.password, {
+      host: env.db.host,
+      port: env.db.port,
+      dialect: env.db.dialect,
+      ...options,
+    });
 
 /** Verifies the DB connection is alive. Called once on server boot. */
 export async function connectDatabase(): Promise<void> {

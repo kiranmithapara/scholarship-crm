@@ -21,13 +21,14 @@ export const env = {
   isDevelopment: process.env.NODE_ENV !== "production",
 
   db: {
+    url: process.env.DATABASE_URL,
     host: requireEnv("DB_HOST", "localhost"),
     port: parseInt(requireEnv("DB_PORT", "5432"), 10),
     name: requireEnv("DB_NAME", "scholarship_crm_claude"),
     user: requireEnv("DB_USER", "postgres"),
     password: process.env.DB_PASSWORD ?? "",
     dialect: "postgres" as const,
-    ssl: process.env.DB_SSL === "true",
+    ssl: process.env.DB_SSL === "true" || process.env.NODE_ENV === "production",
   },
 
   jwt: {

@@ -3,24 +3,34 @@
 // as the actual running app.
 require("dotenv").config();
 
-const base = {
-  username: process.env.DB_USER || "postgres",
-  password: process.env.DB_PASSWORD || "",
-  database: process.env.DB_NAME || "scholarship_crm",
-  host: process.env.DB_HOST || "localhost",
-  port: process.env.DB_PORT || 5432,
-  dialect: "postgres",
-  define: { underscored: true, timestamps: true, paranoid: true },
-};
+const dbUrl = process.env.DATABASE_URL;
+
+const base = dbUrl
+  ? {
+      url: dbUrl,
+      dialect: "postgres",
+      define: { underscored: true, timestamps: true, paranoid: true },
+      dialectOptions:
+        process.env.DB_SSL === "true" || process.env.NODE_ENV === "production" || dbUrl.includes("sslmode=")
+          ? { ssl: { require: true, rejectUnauthorized: false } }
+          : {},
+    }
+  : {
+      username: process.env.DB_USER || "postgres",
+      password: process.env.DB_PASSWORD || "",
+      database: process.env.DB_NAME || "scholarship_crm",
+      host: process.env.DB_HOST || "localhost",
+      port: process.env.DB_PORT || 5432,
+      dialect: "postgres",
+      define: { underscored: true, timestamps: true, paranoid: true },
+      dialectOptions:
+        process.env.DB_SSL === "true" || process.env.NODE_ENV === "production"
+          ? { ssl: { require: true, rejectUnauthorized: false } }
+          : {},
+    };
 
 module.exports = {
   development: base,
-  test: { ...base, database: `${base.database}_test` },
-  production: {
-    ...base,
-    dialectOptions:
-      process.env.DB_SSL === "true"
-        ? { ssl: { require: true, rejectUnauthorized: false } }
-        : {},
-  },
+  test: dbUrl ? base : { ...base, database: `${base.database}_test` },
+  production: base,
 };
